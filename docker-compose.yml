@@ -1,0 +1,38 @@
+version: '3.8'
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: hackathon_db
+    environment:
+      POSTGRES_USER: hackathon_user
+      POSTGRES_PASSWORD: hackathon_password
+      POSTGRES_DB: hackathon_db
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U hackathon_user"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Uncomment when you're ready to deploy the backend in Docker
+  # backend:
+  #   build: ./backend
+  #   container_name: hackathon_backend
+  #   command: uvicorn main:app --host 0.0.0.0 --port 8000 --reload
+  #   ports:
+  #     - "8000:8000"
+  #   depends_on:
+  #     postgres:
+  #       condition: service_healthy
+  #   environment:
+  #     - DATABASE_URL=postgresql://hackathon_user:hackathon_password@postgres:5432/hackathon_db
+  #     - DEBUG=True
+  #   volumes:
+  #     - ./backend:/app
+
+volumes:
+  postgres_data:
