@@ -4,7 +4,8 @@ from fastapi.middleware.cors import CORSMiddleware
 from config import settings
 from database import Base, engine
 
-# Create database tables
+# Drop all tables and recreate (useful for development)
+Base.metadata.drop_all(bind=engine)
 Base.metadata.create_all(bind=engine)
 
 # Initialize FastAPI app
