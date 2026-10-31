@@ -1,5 +1,6 @@
 /**
- * Candidate portal (public, token-protected).
+ * Candidate portal (public, opened from the invitation email).
+ * The candidate only sees the questions. Answers are plain text.
  */
 import { useEffect, useState } from 'react'
 import { useParams } from 'react-router-dom'
@@ -8,76 +9,94 @@ import { apiGet, apiPost } from '../api'
 export default function Portal() {
   const { token } = useParams()
   const [session, setSession] = useState(null)
+  const [error, setError] = useState('')
   const [loading, setLoading] = useState(true)
   const [answers, setAnswers] = useState({})
+  const [sending, setSending] = useState(false)
+  const [done, setDone] = useState('')
 
   useEffect(() => {
-    const load = async () => {
-      try {
-        const res = await apiGet(`/portal/${token}`)
+    apiGet(`/portal/${token}`)
+      .then((res) => {
         setSession(res.data)
-        // Initialize empty answers for each question
-        const init = {}
-        res.data.questions.forEach(q => {
-          init[q.id] = ''
-        })
-        setAnswers(init)
-      } catch (err) {
-        console.error('Failed to load portal session:', err)
-      } finally {
-        setLoading(false)
-      }
-    }
-
-    load()
+        setAnswers(Object.fromEntries(res.data.questions.map((q) => [q.id, ''])))
+      })
+      .catch((err) => setError(err.response?.data?.detail || 'This link is not valid.'))
+      .finally(() => setLoading(false))
   }, [token])
 
-  const handleAnswerChange = (qId, value) => {
-    setAnswers({ ...answers, [qId]: value })
-  }
-
-  const handleSubmit = async () => {
+  const submit = async (e) => {
+    e.preventDefault()
+    setSending(true)
+    setError('')
     try {
-      await apiPost(`/portal/${token}/video`, { answers })
-      alert('Answers submitted successfully!')
+      const res = await apiPost(`/portal/${token}/answers`, { answers })
+      setDone(res.data.message)
     } catch (err) {
-      console.error('Submission failed:', err)
-      alert('Failed to submit')
+      setError(err.response?.data?.detail || 'Could not send your answers. Please try again.')
+    } finally {
+      setSending(false)
     }
   }
 
-  if (loading) return <div className="text-center text-gray-500">Loading...</div>
+  const shell = (children) => (
+    <div className="min-h-screen bg-gray-50 py-10 px-4">
+      <div className="max-w-3xl mx-auto">
+        <p className="text-center text-blue-600 font-bold text-xl mb-6">🛡️ HireGuard · Fictional Company</p>
+        {children}
+      </div>
+    </div>
+  )
 
-  if (!session) return <div className="text-center text-red-500">Invalid token or session expired</div>
+  if (loading) return shell(<p className="text-center text-gray-500">Loading…</p>)
+  if (done) return shell(
+    <div className="bg-white rounded-lg shadow p-10 text-center">
+      <p className="text-5xl mb-4">✅</p>
+      <h1 className="text-2xl font-bold mb-2">Answers received</h1>
+      <p className="text-gray-600">{done}</p>
+    </div>
+  )
+  if (!session) return shell(
+    <div className="bg-white rounded-lg shadow p-10 text-center">
+      <p className="text-4xl mb-4">🔒</p>
+      <p className="text-gray-700">{error}</p>
+    </div>
+  )
 
-  return (
-    <div className="max-w-2xl mx-auto">
-      <h1 className="text-3xl font-bold mb-4">Interview Questions</h1>
-      <p className="text-gray-600 mb-6">
-        You have {session.token_remaining_hours} hours to complete this interview.
+  const allAnswered = session.questions.every((q) => (answers[q.id] || '').trim().length > 0)
+
+  return shell(
+    <form onSubmit={submit} className="bg-white rounded-lg shadow p-8">
+      <h1 className="text-2xl font-bold mb-1">Hello {session.first_name} 👋</h1>
+      <p className="text-gray-600 mb-1">Written interview for <b>{session.job_title}</b></p>
+      <p className="text-sm text-gray-500 mb-6">
+        This link is personal, works once, and expires in about {session.token_remaining_hours} hours.
+        We only look at the content of your answers — 5 to 10 sentences each is perfect.
       </p>
 
+      {error && <div className="mb-4 rounded bg-red-50 border border-red-200 px-4 py-2 text-sm text-red-800">{error}</div>}
+
       <div className="space-y-6">
-        {session.questions.map((q) => (
-          <div key={q.id} className="bg-white p-6 rounded-lg shadow">
-            <h3 className="font-semibold text-lg mb-2">{q.text}</h3>
-            <p className="text-sm text-gray-600 mb-4">Rubric: {q.rubric}</p>
+        {session.questions.map((q, i) => (
+          <div key={q.id}>
+            <label className="block font-medium mb-2">{i + 1}. {q.text}</label>
             <textarea
+              className="w-full border border-gray-300 rounded-lg p-3 h-36 focus:outline-none focus:ring-2 focus:ring-blue-400"
+              maxLength={session.max_chars}
               value={answers[q.id] || ''}
-              onChange={(e) => handleAnswerChange(q.id, e.target.value)}
-              className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 h-32"
-              placeholder="Type your answer here..."
+              onChange={(e) => setAnswers({ ...answers, [q.id]: e.target.value })}
+              placeholder="Your answer…"
             />
+            <p className="text-xs text-gray-400 text-right">{(answers[q.id] || '').length}/{session.max_chars}</p>
           </div>
         ))}
       </div>
 
-      <button
-        onClick={handleSubmit}
-        className="mt-6 w-full bg-blue-600 text-white py-3 rounded-lg font-semibold hover:bg-blue-700"
-      >
-        Submit Answers
+      <button type="submit" disabled={!allAnswered || sending}
+        className="mt-6 w-full bg-blue-600 text-white py-3 rounded-lg font-semibold hover:bg-blue-700 disabled:opacity-40">
+        {sending ? 'Sending…' : 'Send my answers'}
       </button>
-    </div>
+      <p className="text-xs text-gray-400 text-center mt-3">You can only submit once. Please check your answers before sending.</p>
+    </form>
   )
 }

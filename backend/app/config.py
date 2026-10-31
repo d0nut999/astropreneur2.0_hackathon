@@ -41,6 +41,9 @@ class Settings(BaseSettings):
     # Comma-separated senders (emails or @domains) whose messages are always important
     vip_senders: str = "director@fictional-company.test,ceo@fictional-company.test"
     demo_emails_dir: str = "./demo_data/emails"
+    # Where candidates open their interview link
+    frontend_url: str = "http://localhost:5173"
+
     # Mailpit web API (dev inbox). In docker-compose: http://mailpit:8025
     mailpit_api_url: str = "http://localhost:8025"
 

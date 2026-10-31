@@ -160,11 +160,64 @@ export default function Candidate() {
               {busy === 'score' ? 'Scoring…' : c.status === 'SCREENED' ? 'Score now' : 'Re-score'}
             </button>
           )}
-          {c.status === 'SHORTLISTED' && <p className="text-sm text-green-800">Shortlisted ✓ — interview invitation comes in the next step.</p>}
+          {c.status === 'SHORTLISTED' && !c.interview?.invite_status && (
+            <button onClick={() => act('invite', `/candidates/${id}/invite`, 'Invitation drafted with 3 questions. Review and approve it in Approvals — nothing has been sent yet.')}
+              disabled={!!busy} className="px-4 py-2 rounded-lg bg-blue-600 text-white font-medium hover:bg-blue-700 disabled:opacity-50">
+              {busy === 'invite' ? 'Preparing questions…' : '✉️ Prepare interview invitation'}
+            </button>
+          )}
+          {c.status === 'SHORTLISTED' && c.interview?.invite_status === 'pending' && (
+            <Link to="/approvals" className="px-4 py-2 rounded-lg bg-yellow-100 text-yellow-900 font-medium hover:bg-yellow-200">
+              Invitation waiting for your approval →
+            </Link>
+          )}
+          {c.status === 'SHORTLISTED' && c.interview?.invite_status === 'rejected' && (
+            <p className="text-sm text-gray-600">You rejected the invitation draft. Nothing was sent.</p>
+          )}
+          {c.status === 'INVITED' && (
+            <p className="text-sm text-indigo-800">
+              Invitation sent ✓ — waiting for the candidate's answers.
+              {c.interview?.portal_link && (
+                <a href={new URL(c.interview.portal_link).pathname} target="_blank" rel="noreferrer"
+                  className="ml-2 text-blue-600 hover:underline">Open the candidate's link (demo) ↗</a>
+              )}
+            </p>
+          )}
+          {c.status === 'VIDEO_SUBMITTED' && <p className="text-sm text-cyan-800">Answers received ✓ — evaluation comes in the next step.</p>}
           {quarantined && <p className="text-sm text-gray-600">Blocked CVs cannot be scored or shortlisted automatically.</p>}
           <p className="text-xs text-gray-400 ml-auto">Only a logged-in human can shortlist. The AI cannot.</p>
         </div>
       </div>
+
+      {c.interview?.questions?.length > 0 && (
+        <div className="bg-white rounded-lg shadow p-6 mb-6">
+          <p className="text-xs uppercase tracking-wide text-gray-500 mb-3">
+            Written interview {c.interview.submitted_at ? `· answered ${new Date(c.interview.submitted_at).toLocaleString()}` : ''}
+          </p>
+          {c.interview.answer_flags?.length > 0 && (
+            <div className="rounded border border-amber-300 bg-amber-50 p-3 mb-4 text-sm text-amber-900">
+              ⚠ The answers contain text that tries to instruct the AI: "{c.interview.answer_flags[0]}"
+            </div>
+          )}
+          <div className="space-y-5">
+            {c.interview.questions.map((q, i) => {
+              const a = c.interview.answers?.find((x) => x.question_id === q.id)
+              return (
+                <div key={q.id}>
+                  <p className="font-medium">
+                    {i + 1}. {q.text}
+                    <span className={`ml-2 text-xs rounded px-2 py-0.5 ${q.is_tailored ? 'bg-purple-50 text-purple-700' : 'bg-gray-100 text-gray-600'}`}>
+                      {q.is_tailored ? 'tailored to this CV' : 'same for all candidates'}
+                    </span>
+                  </p>
+                  <p className="text-xs text-gray-400 mt-1">What a good answer contains (HR only): {q.rubric}</p>
+                  {a && <div className="mt-2 rounded bg-gray-50 p-3 text-sm whitespace-pre-wrap">{a.answer}</div>}
+                </div>
+              )
+            })}
+          </div>
+        </div>
+      )}
 
       {c.anonymized_cv && (
         <div className="bg-white rounded-lg shadow p-6">

@@ -222,3 +222,9 @@ class CVScoring(BaseModel):
     gaps: list[str] = []
     injection_suspected: bool = False
     injection_text: str = ""
+
+
+class TailoredQuestion(BaseModel):
+    """Output schema for the tailored interview question."""
+    question: str
+    rubric: str

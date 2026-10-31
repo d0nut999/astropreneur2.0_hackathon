@@ -177,6 +177,9 @@ export const mockResponses = {
   ],
 
   'GET /portal/:token': {
+    job_title: 'Junior Backend Developer (Python)',
+    first_name: 'Sara',
+    max_chars: 4000,
     application_id: 1,
     questions: [
       {

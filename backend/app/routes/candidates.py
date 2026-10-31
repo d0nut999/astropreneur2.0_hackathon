@@ -8,8 +8,14 @@ from sqlmodel import Session, select
 from ..audit import log_audit
 from ..auth import require_role
 from ..db import get_session
-from ..models import Application, ApplicationStatus, Candidate, Email, Evaluation, Job, Score, User, UserRole
+import re
+
+from ..models import (
+    Application, ApplicationStatus, Candidate, Draft, DraftType, Email, Evaluation, Job, Score, User, UserRole,
+    VideoSubmission,
+)
 from ..schemas import DecisionRequest, ShortlistRequest
+from ..services.interview import prepare_invitation, questions_for
 from ..services.scorer import score_application
 from ..state_machine import StateTransitionError, transition
 
@@ -80,6 +86,33 @@ def get_candidate_detail(candidate_id: int, db: Session = Depends(get_session)):
         "removed_personal_info": len(app.anonymized_profile_json.get("removed", [])),
         "evaluation": ev.model_dump() if ev else None,
         "email_id": email.id if email else None,
+        "interview": _interview(db, app),
+    }
+
+
+def _interview(db: Session, app: Application) -> dict | None:
+    """Questions (with rubric, for HR), invitation status, demo link, and answers if submitted."""
+    if app.status in (ApplicationStatus.RECEIVED, ApplicationStatus.SCREENED, ApplicationStatus.SCORED,
+                      ApplicationStatus.QUARANTINED):
+        return None
+    invite = db.exec(select(Draft).where(Draft.application_id == app.id, Draft.type == DraftType.INVITE)
+                     .order_by(Draft.id.desc())).first()
+    sub = db.exec(select(VideoSubmission).where(VideoSubmission.application_id == app.id)
+                  .order_by(VideoSubmission.id.desc())).first()
+    link = None
+    if invite:
+        m = re.search(r"https?://\S+/portal/\S+", invite.body)
+        link = m.group(0) if m else None
+    qs = questions_for(db, app) if (invite or sub) else []
+    return {
+        "questions": [{"id": q.id, "text": q.text, "rubric": q.rubric, "is_tailored": q.is_tailored} for q in qs],
+        "invite_draft_id": invite.id if invite else None,
+        "invite_status": invite.status.value if invite else None,
+        "portal_link": link,
+        "expires_at": sub.expires_at.isoformat() if sub else None,
+        "answers": (sub.transcript_json.get("answers") if sub and sub.transcript_json else None),
+        "answer_flags": (sub.transcript_json.get("injection_flags", []) if sub and sub.transcript_json else []),
+        "submitted_at": (sub.transcript_json.get("submitted_at") if sub and sub.transcript_json else None),
     }
 
 
@@ -108,6 +141,20 @@ def shortlist_candidate(candidate_id: int, req: ShortlistRequest = None, db: Ses
     except StateTransitionError as e:
         raise HTTPException(400, str(e))
     return {"id": app.id, "status": app.status.value}
+
+
+@router.post("/{candidate_id}/invite")
+def invite_candidate(candidate_id: int, db: Session = Depends(get_session), user: User = Depends(human)):
+    """✋ HR asks for an interview invitation. The AI prepares questions + a draft; HR must still approve it."""
+    app = db.get(Application, candidate_id)
+    if not app:
+        raise HTTPException(404, "Application not found")
+    try:
+        draft = prepare_invitation(db, app, actor=f"user:{user.id}")
+    except ValueError as e:
+        raise HTTPException(400, str(e))
+    return {"draft_id": draft.id, "status": draft.status.value,
+            "message": "Invitation drafted. Review and approve it in Approvals - nothing has been sent."}
 
 
 @router.post("/{candidate_id}/decision")

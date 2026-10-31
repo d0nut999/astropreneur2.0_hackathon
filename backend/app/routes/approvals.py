@@ -76,18 +76,18 @@ def approve_draft(draft_id: int, db: Session = Depends(get_session), user: User 
     db.commit()
     log_audit(db, actor=f"user:{user.id}", action="approve_draft", entity="draft", entity_id=d.id)
 
-    sent = send_email(to, d.subject, d.body)
+    sent, how = send_email(to, d.subject, d.body)
     if sent:
         d.status = DraftStatus.SENT
         db.add(d)
         db.commit()
-        log_audit(db, actor="system", action="email_sent", entity="draft", entity_id=d.id, payload={"to": to})
+        log_audit(db, actor="system", action="email_sent", entity="draft", entity_id=d.id, payload={"to": to, "via": how})
         if d.type == DraftType.INVITE and d.application_id:
             app = db.get(Application, d.application_id)
             if app and app.status == ApplicationStatus.SHORTLISTED:
                 transition(db, app, ApplicationStatus.INVITED, actor=f"user:{user.id}")
-    return {"id": d.id, "status": d.status, "sent": sent, "to": to,
-            "message": "Sent" if sent else "Approved, but the mail server is not reachable (is Mailpit running?)"}
+    message = "Sent" if how == "smtp" else "Mail server not running: email saved in backend/data/outbox"
+    return {"id": d.id, "status": d.status, "sent": sent, "via": how, "to": to, "message": message}
 
 
 @router.post("/{draft_id}/reject")
