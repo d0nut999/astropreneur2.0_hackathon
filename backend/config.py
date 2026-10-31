@@ -1,4 +1,4 @@
-"""Application configuration. TESTEST"""
+"""Application configuration. """
 from pydantic_settings import BaseSettings
 
 
