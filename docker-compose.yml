@@ -1,38 +1,42 @@
 version: '3.8'
 
 services:
-  postgres:
-    image: postgres:16-alpine
-    container_name: hackathon_db
-    environment:
-      POSTGRES_USER: hackathon_user
-      POSTGRES_PASSWORD: hackathon_password
-      POSTGRES_DB: hackathon_db
+  backend:
+    build: ./backend
+    container_name: hireguard_backend
+    command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
     ports:
-      - "5432:5432"
+      - "8000:8000"
     volumes:
-      - postgres_data:/var/lib/postgresql/data
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U hackathon_user"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
+      - ./backend:/app
+    environment:
+      - APP_ENV=dev
+      - DATABASE_URL=sqlite:///./data/hireguard.db
+      - CORS_ORIGINS=http://localhost:5173
+      - LLM_BASE_URL=https://openrouter.ai/api/v1
+      - LLM_API_KEY=
+      - SMTP_HOST=mailpit
+      - SMTP_PORT=1025
+    depends_on:
+      - mailpit
 
-  # Uncomment when you're ready to deploy the backend in Docker
-  # backend:
-  #   build: ./backend
-  #   container_name: hackathon_backend
-  #   command: uvicorn main:app --host 0.0.0.0 --port 8000 --reload
-  #   ports:
-  #     - "8000:8000"
-  #   depends_on:
-  #     postgres:
-  #       condition: service_healthy
-  #   environment:
-  #     - DATABASE_URL=postgresql://hackathon_user:hackathon_password@postgres:5432/hackathon_db
-  #     - DEBUG=True
-  #   volumes:
-  #     - ./backend:/app
+  frontend:
+    image: node:18-alpine
+    container_name: hireguard_frontend
+    working_dir: /app
+    command: npm run dev
+    ports:
+      - "5173:5173"
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
+    environment:
+      - VITE_USE_MOCK=false
 
-volumes:
-  postgres_data:
+  mailpit:
+    image: axllent/mailpit:latest
+    container_name: hireguard_mailpit
+    ports:
+      - "8025:8025"  # Web UI
+      - "1025:1025"  # SMTP
+      - "1143:1143"  # IMAP

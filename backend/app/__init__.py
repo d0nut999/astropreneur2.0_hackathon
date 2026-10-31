@@ -1,0 +1,1 @@
+"""HireGuard app package."""

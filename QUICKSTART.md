@@ -1,165 +1,153 @@
-# Quick Start Guide (5 minutes)
+# HireGuard Quickstart (10 minutes)
 
-## Step 1: Start Database (30 seconds)
-
-```bash
-docker-compose up -d postgres
-```
-
-Wait for it to be ready. Check with:
-```bash
-docker ps
-```
-
-Should see `hackathon_db` running.
-
-## Step 2: Start Backend (1 minute)
+## 1. Start Services (1 minute)
 
 ```bash
-cd backend
-
-# Create and activate virtual environment
-python -m venv venv
-venv\Scripts\activate  # Windows
-# source venv/bin/activate  # Mac/Linux
-
-# Install dependencies
-pip install -r requirements.txt
-
-# Create .env file
-copy .env.example .env
-
-# Run
-python main.py
+cp backend/.env.example backend/.env
+docker-compose up
 ```
 
-You should see:
+Wait for output:
 ```
-Uvicorn running on http://127.0.0.1:8000
+hireguard_frontend | VITE v5.0.0 ready in XXX ms
+hireguard_backend | Uvicorn running on http://0.0.0.0:8000
 ```
 
-**Test it**: Open http://localhost:8000/docs in browser → should see Swagger UI
+## 2. Seed Database (1 minute)
 
-## Step 3: Start Frontend (2 minutes)
-
-In a **new terminal**:
+In a new terminal:
 
 ```bash
-cd frontend
-
-# Install dependencies
-npm install
-
-# Start dev server
-npm run dev
+python backend/scripts/seed.py
 ```
 
-You should see:
+Output:
 ```
-VITE v5.0.8  ready in 200 ms
-Local: http://localhost:5173/
+✅ Database seeded successfully!
+
+Credentials:
+Admin:    admin@fictional-company.test / admin123
+Recruiter: recruiter@fictional-company.test / recruiter123
 ```
 
-## Step 4: Test It (1 minute)
+## 3. Open the App (30 seconds)
 
-Open http://localhost:5173 in browser:
+- **Frontend**: http://localhost:5173
+- **API Docs**: http://localhost:8000/docs
+- **Mailpit Inbox**: http://localhost:8025
 
-1. Fill in the form (email, username, password, name)
-2. Click "Create User"
-3. See user appear in the list below
+## 4. Test It (2 minutes)
 
-**If it works** ✅ → Start building your features!
+1. Go to http://localhost:5173
+2. Login with `recruiter@fictional-company.test` / `recruiter123`
+3. You'll see:
+   - Dashboard with metrics
+   - Jobs list (1 demo job)
+   - Approvals queue (1 pending draft)
+   - Audit log
 
-**If it doesn't** ❌ → See troubleshooting below
+## 5. Test Mock Mode (Optional)
 
-## Keeping Servers Running
+To test frontend without backend running:
 
-Terminal 1: Backend stays running
-Terminal 2: Frontend stays running
-Terminal 3: Use for git commands
-
-## Quick Commands Reference
-
-### Backend
 ```bash
-cd backend
-venv\Scripts\activate  # Activate venv
-python main.py         # Start server
-pip install package    # Add dependency
+# In docker-compose.yml, change frontend env:
+VITE_USE_MOCK=true
 ```
 
-### Frontend
+Then restart frontend. All pages work with mock data.
+
+## Key Concepts
+
+### State Machine (HITL)
+
+Candidates move through states: `RECEIVED → SCREENED → SCORED → SHORTLISTED* → INVITED* → VIDEO_SUBMITTED → EVALUATED → DECIDED*`
+
+`*` = Human must click to advance. AI cannot force these.
+
+### Approval Queue
+
+Email drafts wait in `/approvals` until a human clicks Approve. Only then is the email sent.
+
+### Audit Log
+
+Every action (`/audit`) is append-only. No edits or deletes. Full traceability.
+
+## What's Ready to Build
+
+| Component | Status | Next Step |
+|-----------|--------|-----------|
+| Project structure | ✅ Done | Start coding features |
+| Database models | ✅ Done | Add fields if needed |
+| State machine | ✅ Done, tested | Enforce in business logic |
+| API stubs | ✅ Mock data | Replace with real logic |
+| Frontend pages | ✅ Placeholders | Add forms, real data binding |
+| LLM wrapper | ✅ Stub | Integrate real LLM calls |
+| Security baseline | ✅ Headers + rate limit | Add auth guard, upload checks |
+
+## Your Team's Next Tasks
+
+### Task 1: CV Upload & Security Check
+- `POST /candidates/{id}/upload_cv`
+- Call `app.services.security_gate.check_upload(path)`
+- Store flags, set status to SCREENED or QUARANTINED
+
+### Task 2: CV Parsing & Anonymization
+- `POST /candidates/{id}/parse_cv`
+- Call `app.services.parser.parse_cv(path)` → `app.services.anonymizer.anonymize_profile(parsed)`
+- Store `anonymized_profile_json`
+
+### Task 3: Scoring
+- `POST /candidates/{id}/score`
+- Call `app.services.scorer.score_candidate(...)`
+- Create Score record, set status to SCORED
+
+### Task 4: Interview Questions & Transcription
+- `GET /jobs/{id}/questions` — Return interview questions
+- `POST /portal/{token}/video` — Accept video upload
+- Call `app.services.transcriber.transcribe_video(path)`
+- Store transcript
+
+### Task 5: Evaluation
+- `POST /candidates/{id}/evaluate`
+- Call `app.services.evaluator.evaluate_interview(...)`
+- Create Evaluation record, set status to EVALUATED
+
+### Task 6: Frontend Forms
+- Add CV upload form to candidate detail page
+- Add approve/reject buttons in approval queue
+- Add video player + question form to portal
+
+## Debugging
+
+### Backend logs
 ```bash
-cd frontend
-npm run dev           # Start dev server
-npm install package   # Add dependency
-npm run build         # Build for production
+docker logs -f hireguard_backend
+```
+
+### Frontend logs
+```bash
+docker logs -f hireguard_frontend
 ```
 
 ### Database
 ```bash
-docker-compose up -d postgres      # Start
-docker-compose down                # Stop
-docker-compose logs postgres       # View logs
+sqlite3 backend/data/hireguard.db ".tables"
 ```
 
-## Troubleshooting
-
-### "Port 5432 already in use"
+### API test
 ```bash
-docker-compose down
-docker-compose up -d postgres
+curl http://localhost:8000/docs
 ```
 
-### "ModuleNotFoundError" in backend
-```bash
-cd backend
-venv\Scripts\activate
-pip install -r requirements.txt
-```
+## Tips
 
-### "npm ERR! code ERESOLVE" in frontend
-```bash
-cd frontend
-npm install --legacy-peer-deps
-```
+- **Mock data**: See `frontend/src/api/mock.js` — easy to add more responses
+- **LLM not set**: Leave `LLM_API_KEY` empty; routes that need it will fail gracefully
+- **State transitions**: Use `state_machine.transition()` to enforce HITL rules
+- **Never hardcode PII**: All test data is fictional
+- **Audit everything**: Call `audit.log_audit()` after any state/data change
 
-### "Cannot connect to database"
-```bash
-# Check if postgres is running
-docker ps | grep postgres
+## Good luck! 🚀
 
-# If not, restart
-docker-compose down
-docker-compose up -d postgres
-```
-
-### Frontend shows "Cannot GET /" 
-Make sure you're running `npm run dev` in the frontend folder, not `npm start`
-
-## Next: Build Your Feature
-
-Now that everything works:
-
-1. **Plan your data**: What information do you need? (users, posts, products, etc.)
-2. **Create models**: Add to `backend/models/`
-3. **Create schemas**: Add to `backend/schemas/`
-4. **Create repository**: Add to `backend/repositories/`
-5. **Create controller**: Add to `backend/controllers/`
-6. **Create routes**: Add to `backend/routes/`
-7. **Update main.py**: Register the routes
-8. **Build frontend**: Update components in `frontend/src/`
-
-See `README.md` for detailed examples of each step.
-
-## Push to GitHub
-
-```bash
-git add .
-git commit -m "Initial hackathon setup with FastAPI + React + PostgreSQL"
-git remote add origin https://github.com/YOUR_USERNAME/your-repo.git
-git branch -M main
-git push -u origin main
-```
-
-Good luck with your hackathon! 🚀
+Questions? Check README.md or API docs at http://localhost:8000/docs

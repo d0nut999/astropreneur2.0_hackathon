@@ -1,271 +1,312 @@
-# Hackathon Project
+# HireGuard: Secure AI Recruiting Assistant
 
-A full-stack web application built with FastAPI (Python), PostgreSQL, and React for a hackathon.
+An AI-powered recruiting system that screens CVs, scores candidates, and automates interview management **with mandatory human oversight** at critical decision points.
 
-## Project Structure
+## Golden Rule
 
-```
-hackathon/
-├── backend/                    # FastAPI backend
-│   ├── controllers/           # Business logic layer
-│   ├── models/               # SQLAlchemy database models
-│   ├── repositories/         # Data access layer
-│   ├── routes/              # API endpoint definitions
-│   ├── schemas/             # Pydantic validation schemas
-│   ├── config.py            # Configuration settings
-│   ├── database.py          # Database connection and session
-│   ├── main.py              # FastAPI app entry point
-│   ├── requirements.txt      # Python dependencies
-│   ├── Dockerfile           # Docker container for backend
-│   └── .env.example         # Environment variables template
-│
-├── frontend/                 # React + Vite frontend
-│   ├── src/
-│   │   ├── App.jsx          # Main app component
-│   │   ├── App.css          # App styles
-│   │   ├── main.jsx         # React entry point
-│   │   └── index.css        # Global styles
-│   ├── package.json         # Node dependencies
-│   ├── vite.config.js       # Vite build configuration
-│   ├── index.html           # HTML template
-│   └── .gitignore          # Git ignore rules
-│
-├── docker-compose.yml       # Docker services orchestration
-├── .gitignore              # Git ignore rules
-└── README.md               # This file
-```
+**"The agent executes, the human decides about people."** Nothing is sent and no candidate state changes without an HR click. **"The reader can't act, the actor can't read."** The LLM reads untrusted content (CVs, emails, transcripts) and returns JSON only. Sending emails, changing status, and writing records are done by normal code behind human-approved endpoints.
 
-## Architecture Overview
-
-### Backend (FastAPI)
-
-The backend uses a layered architecture:
-
-1. **Routes** (`routes/`) - HTTP endpoints
-2. **Controllers** (`controllers/`) - Business logic
-3. **Repositories** (`repositories/`) - Database operations
-4. **Models** (`models/`) - SQLAlchemy ORM models
-5. **Schemas** (`schemas/`) - Request/response validation (Pydantic)
-
-### Frontend (React + Vite)
-
-- **Vite**: Fast build tool for modern web dev
-- **React**: Component-based UI library
-- **Axios**: HTTP client for API calls
-- **React Router**: (Optional) for navigation
-
-## Getting Started
+## Quick Start
 
 ### Prerequisites
 
+- Docker & Docker Compose
 - Python 3.11+
 - Node.js 18+
-- Docker & Docker Compose
-- Git
 
-### 1. Clone and Setup Repository
+### 1. Start Services
 
 ```bash
-cd /path/to/hackathon
-git init
-git add .
-git commit -m "Initial commit: project structure"
+cp backend/.env.example backend/.env
+docker-compose up
 ```
 
-### 2. Start PostgreSQL Database
+This starts:
+- **Backend** (FastAPI) on http://localhost:8000
+- **Frontend** (React) on http://localhost:5173
+- **Mailpit** (fake SMTP + inbox UI) on http://localhost:8025
+
+### 2. Seed Database
 
 ```bash
-docker-compose up -d postgres
+python backend/scripts/seed.py
 ```
 
-The database will be available at `localhost:5432` with:
-- Username: `hackathon_user`
-- Password: `hackathon_password`
-- Database: `hackathon_db`
+Creates admin and recruiter users with demo credentials printed to console.
 
-### 3. Setup Backend
+### 3. Access the App
 
-```bash
-cd backend
+- **Frontend**: http://localhost:5173
+- **API Docs**: http://localhost:8000/docs
+- **Mailpit Inbox**: http://localhost:8025
 
-# Create virtual environment
-python -m venv venv
+## Tech Stack
 
-# Activate virtual environment
-# On Windows:
-venv\Scripts\activate
-# On Mac/Linux:
-source venv/bin/activate
+| Layer | Tech |
+|-------|------|
+| **Frontend** | React 18 + Vite + TypeScript + Tailwind CSS |
+| **Backend** | FastAPI + SQLModel + SQLite |
+| **Database** | SQLite (single file, `./backend/data/hireguard.db`) |
+| **LLM** | OpenAI-compatible client (OpenRouter, Groq, Ollama, Gemini) |
+| **Auth** | Argon2 password hashing + session cookies (HttpOnly) |
+| **File Security** | PyMuPDF, python-magic, pdfplumber (stubs now) |
+| **Audio** | faster-whisper (lazy import, stubs now) |
+| **Email** | stdlib imaplib/smtplib + Mailpit for dev |
+| **Infra** | Docker Compose |
 
-# Install dependencies
-pip install -r requirements.txt
+## Architecture
 
-# Create .env file from example
-copy .env.example .env
-# Or on Mac/Linux: cp .env.example .env
+### Backend Structure
+
+```
+backend/app/
+├── main.py              # FastAPI app factory
+├── config.py            # Settings from .env
+├── db.py                # SQLite engine & session
+├── models.py            # SQLModel tables (User, Job, Candidate, Application, etc.)
+├── schemas.py           # Pydantic request/response schemas + LLM task schemas
+├── auth.py              # Password hashing, role decorators
+├── audit.py             # Audit logging helper
+├── state_machine.py     # Application state transitions (HITL enforcement)
+├── llm.py               # LLM wrapper (caching, validation, fallbacks)
+├── security_headers.py  # CSP, X-Frame-Options, etc.
+├── routes/              # Auto-registered endpoint files
+│   ├── health.py        # /health
+│   ├── auth.py          # /auth/login, /auth/me
+│   ├── jobs.py          # /jobs
+│   ├── candidates.py    # /candidates, /candidates/{id}/shortlist
+│   ├── approvals.py     # /approvals (draft queue)
+│   ├── digest.py        # /digest/today
+│   ├── audit.py         # /audit (append-only log)
+│   └── portal.py        # /portal/{token} (public candidate portal)
+└── services/            # Business logic stubs
+    ├── security_gate.py   # File validation
+    ├── parser.py          # CV parsing
+    ├── anonymizer.py      # Remove PII
+    ├── scorer.py          # Score candidate
+    ├── evaluator.py       # Evaluate interview
+    ├── transcriber.py     # Audio→text
+    ├── mailer.py          # Send emails
+    └── digest.py          # Daily summary
 ```
 
-### 4. Run Backend
+### State Machine
 
-```bash
-# Make sure you're in backend/ directory with venv activated
-python main.py
+```
+RECEIVED → SCREENED | QUARANTINED
+SCREENED → SCORED
+SCORED → SHORTLISTED*
+SHORTLISTED* → INVITED*
+INVITED* → VIDEO_SUBMITTED
+VIDEO_SUBMITTED → EVALUATED
+EVALUATED → DECIDED*
 ```
 
-Backend will run at `http://localhost:8000`
+`*` = Human-only state. AI cannot enter SHORTLISTED, INVITED, or DECIDED. Enforced by `state_machine.transition()`. **Attempting to violate this raises StateTransitionError.**
 
-Check the API docs at `http://localhost:8000/docs` (Swagger UI)
+### Frontend Structure
 
-### 5. Setup Frontend
-
-```bash
-# In a new terminal, navigate to frontend directory
-cd frontend
-
-# Install dependencies
-npm install
-
-# Start development server
-npm run dev
+```
+frontend/src/
+├── api/
+│   ├── client.js        # Axios wrapper
+│   ├── mock.js          # Mock responses for VITE_USE_MOCK=true
+│   └── index.js         # Entry point (switches real/mock)
+├── components/
+│   ├── Layout.jsx       # Header, nav, footer
+│   ├── StatusBadge.jsx  # Color-coded status labels
+│   ├── EvidenceQuote.jsx# Evidence display (plain text only)
+│   └── FlagBanner.jsx   # Security flag alerts
+├── pages/
+│   ├── Dashboard.jsx    # Main overview + digest
+│   ├── Login.jsx        # Auth page
+│   ├── Jobs.jsx         # Job listing
+│   ├── Portal.jsx       # Candidate portal (public)
+│   ├── Approvals.jsx    # Draft approval queue
+│   └── Audit.jsx        # Audit log viewer
+├── App.jsx              # Routes
+└── main.jsx, index.css
 ```
 
-Frontend will run at `http://localhost:5173`
+**Mock Mode**: Set `VITE_USE_MOCK=true` in `.env` to test frontend without backend. All pages work with hardcoded mock data.
 
 ## API Endpoints
 
-### Users
+### Authentication
+- `POST /auth/login` — Login
+- `POST /auth/logout` — Logout
+- `GET /auth/me` — Current user
 
-- `POST /api/users` - Create a new user
-  ```json
-  {
-    "email": "user@example.com",
-    "username": "john_doe",
-    "full_name": "John Doe",
-    "password": "securepassword"
-  }
-  ```
+### Jobs
+- `GET /jobs` — List jobs
+- `POST /jobs` — Create job (admin)
+- `POST /jobs/{id}/rubric/approve` — Approve rubric (human)
 
-- `GET /api/users` - Get all users (with pagination)
-  - Query params: `skip=0&limit=10`
+### Candidates
+- `GET /candidates` — List candidates for a job (ranked)
+- `GET /candidates/{id}` — Full profile (scores, evidence, flags, evaluation)
+- `POST /candidates/{id}/shortlist` — Shortlist (human only)
+- `POST /candidates/{id}/decision` — Record final decision (human only)
 
-- `GET /api/users/{user_id}` - Get specific user
+### Approvals
+- `GET /approvals` — Pending draft queue
+- `POST /approvals/{id}/approve` — Approve draft (human)
+- `POST /approvals/{id}/reject` — Reject draft (human)
 
-- `PUT /api/users/{user_id}` - Update user
+### Other
+- `GET /health` — Health check
+- `GET /digest/today` — Daily summary
+- `GET /audit` — Audit log (append-only)
+- `GET /portal/{token}` — Candidate portal (public, token-protected)
+- `POST /portal/{token}/video` — Submit interview response
 
-- `DELETE /api/users/{user_id}` - Delete user
+## Data Model
 
-## How to Add New Features
+### Tables
 
-### Adding a New Database Model
+| Table | Purpose |
+|-------|---------|
+| `users` | Recruiters and admins |
+| `jobs` | Job postings with rubrics |
+| `candidates` | Candidate identity (name, email) |
+| `applications` | Application + anonymized profile + CV path + status |
+| `scores` | Scoring results (criteria, total, evidence) |
+| `interview_questions` | Questions per job (can be tailored per application) |
+| `video_submissions` | One-time token, transcript, used flag |
+| `evaluations` | Interview evaluation (per-question scores, recommendation) |
+| `drafts` | Pending emails (invite/reply/reminder/rejection) awaiting approval |
+| `emails` | Incoming emails (category, urgency, flagged for human) |
+| `audit_logs` | Append-only log (never updated or deleted) |
 
-1. **Create Model** (`backend/models/example.py`):
+### Key Design Patterns
+
+- **No raw passwords**: All stored as Argon2 hashes
+- **JSON columns**: `rubric_json`, `anonymized_profile_json`, `criteria_json`, etc. for flexibility
+- **Append-only audit**: No updates/deletes on `audit_logs`
+- **Anonymized profile**: CV data with PII removed, stored per application
+- **One-time portal tokens**: Hash stored only, never the token itself
+- **Status enum**: Fixed valid transitions enforced in code
+
+## LLM Integration
+
+### Config
+
+```env
+LLM_BASE_URL=https://openrouter.ai/api/v1
+LLM_API_KEY=...
+LLM_MODEL=meta-llama/llama-2-7b-chat
+LLM_FALLBACK_MODELS=gpt-4,gpt-3.5-turbo
+LLM_TEMPERATURE=0
+LLM_CACHE_ENABLED=true
+LLM_MAX_ATTEMPTS=2
+```
+
+### Usage
+
 ```python
-from sqlalchemy import Column, Integer, String
-from database import Base
+from app.llm import complete_json
+from app.schemas import ScoringResult
 
-class Example(Base):
-    __tablename__ = "examples"
-    
-    id = Column(Integer, primary_key=True, index=True)
-    name = Column(String, index=True)
+result = complete_json(
+    task="score",
+    system="You are an expert recruiter...",
+    user=f"Score this candidate:\n{anonymized_profile}",
+    schema=ScoringResult,
+    prompt_version="v1",
+    db=session,
+)
 ```
 
-2. **Create Schema** (`backend/schemas/example.py`):
-```python
-from pydantic import BaseModel
+**Features:**
+- **Caching**: `./backend/data/llm_cache/` (disk-based)
+- **Validation**: Output validated against Pydantic schema; retry once on invalid JSON
+- **Fallbacks**: Multiple models per API call (if supported)
+- **Audit**: Each call logged to `audit_logs`
+- **Graceful failure**: Raises clear error if `LLM_API_KEY` is empty
 
-class ExampleCreate(BaseModel):
-    name: str
+## Extension Guide
 
-class ExampleResponse(BaseModel):
-    id: int
-    name: str
-    
-    class Config:
-        from_attributes = True
-```
+### Adding a New Capability
 
-3. **Create Repository** (`backend/repositories/example_repository.py`):
-```python
-from sqlalchemy.orm import Session
-from models.example import Example
+1. **Create a service** in `app/services/my_feature.py` with plain functions
+2. **Create a Pydantic schema** in `app/schemas.py` for LLM output
+3. **Create a prompt** in `backend/prompts/my_task.md` (versioned)
+4. **Create a route** in `app/routes/my_feature.py`
+5. **Register the route** in `app/main.py` (auto-imports all routes from `app/routes/`)
+6. **Add tests** in `backend/tests/test_my_feature.py`
+7. **Add frontend page** in `frontend/src/pages/MyFeature.jsx`
 
-class ExampleRepository:
-    @staticmethod
-    def create(db: Session, example: ExampleCreate) -> Example:
-        db_example = Example(**example.model_dump())
-        db.add(db_example)
-        db.commit()
-        db.refresh(db_example)
-        return db_example
-```
+### HITL (Human-in-the-Loop) Rule
 
-4. **Create Controller** (`backend/controllers/example_controller.py`):
-```python
-from controllers.example_controller import ExampleController
+Any route that changes candidate status or sends an email MUST:
+1. Go through `state_machine.transition()` (enforces valid state + HITL checks)
+2. Create a `Draft` record in the approval queue (status = PENDING)
+3. Wait for a human to approve (`POST /approvals/{id}/approve`)
+4. Only then execute the actual action (send email, update status)
 
-class ExampleController:
-    @staticmethod
-    def create_example(db: Session, example: ExampleCreate):
-        return ExampleRepository.create(db, example)
-```
+**Never permit AI to directly update status or send emails.** Always require human approval.
 
-5. **Create Routes** (`backend/routes/examples.py`):
-```python
-from fastapi import APIRouter, Depends
-from controllers.example_controller import ExampleController
+## Testing
 
-router = APIRouter(prefix="/api/examples", tags=["examples"])
+```bash
+# Install test dependencies (in requirements.txt)
+pip install pytest httpx
 
-@router.post("/")
-async def create_example(example: ExampleCreate, db: Session = Depends(get_db)):
-    return ExampleController.create_example(db, example)
-```
+# Run tests
+pytest backend/tests/
 
-6. **Register Route** in `backend/main.py`:
-```python
-from routes import examples_router
-app.include_router(examples_router)
-```
+# Specific test
+pytest backend/tests/test_hitl.py -v
 
-## Environment Variables
-
-Create a `.env` file in the `backend/` directory:
-
-```
-DATABASE_URL=postgresql://hackathon_user:hackathon_password@localhost:5432/hackathon_db
-DEBUG=True
-SECRET_KEY=your-secret-key-here
-FRONTEND_URL=http://localhost:5173
+# The HITL test proves AI cannot enter human-only states
 ```
 
 ## Development Tips
 
-### Frontend Proxy
+### Frontend
 
-Vite is configured to proxy API requests to the backend. Any request to `/api/*` is forwarded to `http://localhost:8000`.
+- **Mock mode**: `docker-compose up` sets `VITE_USE_MOCK=false` by default
+- **Test pages independently**: Visit http://localhost:5173 and check page
+- **Mock data**: Edit `frontend/src/api/mock.js` to test UI logic
+- **Tailwind live**: Changes to `.jsx` reload instantly via Vite
 
-### Database
+### Backend
 
-The database is automatically created on first connection. SQLAlchemy will create tables from models.
+- **API docs**: http://localhost:8000/docs (auto-generated Swagger UI)
+- **Debug mode**: `APP_ENV=dev` logs SQL queries
+- **Database**: `backend/data/hireguard.db` (SQLite file, delete to reset)
+- **Audit log**: Query `audit_logs` to trace all actions
 
-### Debugging Backend
+### Database Reset
 
-Set `DEBUG=True` in `.env` to see SQL queries in the console.
+```bash
+rm backend/data/hireguard.db
+python backend/scripts/seed.py
+```
 
-### Frontend Hot Reload
+## Security Baseline
 
-Vite automatically reloads when you save files.
+- **CSP headers**: Content-Security-Policy, X-Frame-Options, X-Content-Type-Options
+- **CORS allowlist**: `CORS_ORIGINS` env var (defaults to localhost:5173)
+- **Rate limiting**: `/auth/login` and `/portal/*` have stricter limits (via `slowapi`)
+- **Password hashing**: Argon2 (not SHA256, not md5)
+- **Session cookies**: HttpOnly + SameSite=Lax
+- **ORM-only queries**: No raw SQL strings (SQLModel enforces parameterization)
+- **Upload validation**: Stubs in `app/services/security_gate.py` (file type, hidden text)
 
 ## Deployment
 
-### Backend (Docker)
+### Backend
 
 ```bash
-docker build -t hackathon-backend ./backend
+# Build
+docker build -t hireguard-backend ./backend
+
+# Run
 docker run -p 8000:8000 \
-  -e DATABASE_URL=postgresql://... \
-  hackathon-backend
+  -e DATABASE_URL=sqlite:///./data/hireguard.db \
+  -e LLM_API_KEY=... \
+  hireguard-backend
 ```
 
 ### Frontend
@@ -273,45 +314,50 @@ docker run -p 8000:8000 \
 ```bash
 cd frontend
 npm run build
-# Serve dist/ folder with your hosting provider
+# Upload `dist/` to Vercel, Netlify, or static host
 ```
+
+### Database
+
+SQLite file is portable. Back it up regularly if production data is stored.
 
 ## Troubleshooting
 
-### Port Already in Use
+### Backend won't start
+```bash
+# Check port 8000 is free
+# Check DATABASE_URL path is writable
+# Check LLM_API_KEY if you want to test LLM endpoints
+```
 
-- Backend (8000): `lsof -i :8000` (Mac/Linux) or check Windows Task Manager
-- Frontend (5173): Change port in `frontend/vite.config.js`
+### Frontend can't connect to backend
+```bash
+# Check backend is running on port 8000
+# Check VITE_USE_MOCK setting
+# Check browser console for CORS errors
+# Ensure CORS_ORIGINS in .env includes http://localhost:5173
+```
 
-### Database Connection Error
-
-- Ensure PostgreSQL is running: `docker ps | grep postgres`
-- Verify DATABASE_URL in `.env`
-- Check database credentials match docker-compose.yml
-
-### CORS Errors
-
-- Ensure `FRONTEND_URL` in backend `.env` matches your frontend URL
-- Restart backend after changing `.env`
+### Database locked error
+```bash
+# SQLite can have concurrency issues
+# Close all backend processes
+# Delete .db file and re-seed
+```
 
 ## Next Steps for Hackathon
 
-1. ✅ Database & Backend structure setup
-2. ✅ Frontend structure setup
-3. **Add your features**: Expand models, controllers, routes, and UI
-4. **Authentication**: Add JWT tokens for secure API access
-5. **Validation**: Add input validation in Pydantic schemas
-6. **Testing**: Write unit and integration tests
-7. **Deployment**: Push to GitHub and deploy to Heroku, Render, or similar
-
-## Resources
-
-- [FastAPI Documentation](https://fastapi.tiangolo.com/)
-- [React Documentation](https://react.dev)
-- [SQLAlchemy ORM](https://docs.sqlalchemy.org/en/20/)
-- [Vite Documentation](https://vitejs.dev/)
-- [PostgreSQL Documentation](https://www.postgresql.org/docs/)
+- [ ] **Implement security gate**: File upload, hidden text detection, prompt injection
+- [ ] **Implement parser**: Extract text/structure from PDF/DOCX
+- [ ] **Implement scorer**: Call LLM to score criteria with evidence
+- [ ] **Implement anonymizer**: Remove PII from parsed CV
+- [ ] **Implement evaluator**: Call LLM to evaluate interview responses
+- [ ] **Implement transcriber**: Convert audio/video to text (faster-whisper)
+- [ ] **Implement mailer**: Send emails via SMTP
+- [ ] **Implement inbox watcher**: Poll IMAP for new applications
+- [ ] **Add session auth**: Actual session cookies (not just stub)
+- [ ] **Add frontend auth guard**: Redirect to login if not authenticated
 
 ## License
 
-MIT
+MIT (for hackathon)
