@@ -59,13 +59,13 @@ def transition(
     # Check if transition is valid
     if to_state not in TRANSITIONS.get(from_state, []):
         raise StateTransitionError(
-            f"Cannot transition from {from_state} to {to_state}"
+            f"Cannot move from {from_state.value} to {to_state.value}"
         )
 
     # Check if actor is human for human-only states
     if to_state in HUMAN_ONLY_STATES and actor.startswith("ai"):
         raise StateTransitionError(
-            f"Only humans may transition to {to_state}"
+            f"Only humans may transition to {to_state.value}"
         )
 
     # Update status

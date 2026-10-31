@@ -198,3 +198,27 @@ class DraftReply(BaseModel):
     """Output schema for an AI-drafted reply."""
     subject: str
     body: str
+
+
+class CriterionScore(BaseModel):
+    score: int = 0
+    evidence: str = ""
+    reason: str = ""
+
+    @field_validator("score", mode="before")
+    @classmethod
+    def _clamp(cls, v):
+        try:
+            return max(0, min(5, int(round(float(v)))))
+        except (TypeError, ValueError):
+            return 0
+
+
+class CVScoring(BaseModel):
+    """Output schema for the CV scorer (LLM or offline)."""
+    criteria: dict[str, CriterionScore]
+    summary: str = ""
+    strengths: list[str] = []
+    gaps: list[str] = []
+    injection_suspected: bool = False
+    injection_text: str = ""

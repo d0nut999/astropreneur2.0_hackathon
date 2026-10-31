@@ -219,7 +219,7 @@ export default function Inbox() {
                     </div>
                   ))}
                   {detail.application_id && (
-                    <Link to="/jobs" className="text-sm text-blue-600 hover:underline">→ Candidate created (application #{detail.application_id})</Link>
+                    <Link to={`/candidates/${detail.application_id}`} className="text-sm text-blue-600 hover:underline">→ Open candidate profile and score</Link>
                   )}
                 </div>
               )}

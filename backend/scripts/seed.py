@@ -10,6 +10,7 @@ from sqlmodel import Session, select
 from app.db import engine, init_db
 from app.models import User, Job, Candidate, Application, ApplicationStatus, UserRole
 from app.auth import hash_password
+from app.services.rubric import JUNIOR_BACKEND_RUBRIC
 
 ADMIN_EMAIL = "admin@fictional-company.test"
 ADMIN_PASSWORD = "admin123"
@@ -46,43 +47,20 @@ def seed():
 
         print("Creating demo job...")
         job = Job(
-            title="Senior Backend Engineer",
-            description="We're looking for an experienced backend engineer to join our team.",
-            rubric_json={
-                "experience": {"weight": 0.3, "max_score": 10},
-                "technical_skills": {"weight": 0.5, "max_score": 10},
-                "communication": {"weight": 0.2, "max_score": 10},
-            },
+            title="Junior Backend Developer (Python)",
+            description=(
+                "We are looking for a junior backend developer to build and maintain REST APIs.\n"
+                "Must have: Python and at least one web framework (FastAPI, Django or Flask).\n"
+                "Nice to have: SQL databases, Git, Docker, automated testing.\n"
+                "Experience: 0-2 years; internships and personal projects count.\n"
+                "Education: computer science degree or equivalent practical experience."
+            ),
+            rubric_json=JUNIOR_BACKEND_RUBRIC,
             rubric_approved_by=admin.id,
         )
         session.add(job)
         session.commit()
-
-        print("Creating demo candidates...")
-        candidates = [
-            Candidate(name="Alice Smith", email="alice@example.com"),
-            Candidate(name="Bob Jones", email="bob@example.com"),
-            Candidate(name="Carol White", email="carol@example.com"),
-        ]
-        for candidate in candidates:
-            session.add(candidate)
-        session.commit()
-
-        print("Creating demo applications...")
-        for i, candidate in enumerate(candidates):
-            app = Application(
-                job_id=job.id,
-                candidate_id=candidate.id,
-                cv_path=f"data/uploads/cv_{i}.pdf",
-                status=ApplicationStatus.SCREENED,
-                anonymized_profile_json={
-                    "experience_years": 5 + i,
-                    "education": "Bachelor's in Computer Science",
-                    "skills": ["Python", "FastAPI", "SQL"],
-                },
-            )
-            session.add(app)
-        session.commit()
+        print("(Candidates arrive by email: open the app and click 'Load demo emails'.)")
 
         print("\n✅ Database seeded successfully!")
         print(f"\nCredentials:")

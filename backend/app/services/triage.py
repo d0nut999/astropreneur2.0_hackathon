@@ -134,4 +134,11 @@ def _create_application(db: Session, raw: dict, cv: dict) -> Application:
     db.commit()
     db.refresh(app)
     target = ApplicationStatus.SCREENED if cv["safe"] else ApplicationStatus.QUARANTINED
-    return transition(db, app, target, actor="system")
+    app = transition(db, app, target, actor="system")
+    if app.status == ApplicationStatus.SCREENED:
+        try:
+            from .scorer import score_application
+            score_application(db, app)
+        except Exception as e:  # scoring must never break email import
+            print(f"[triage] could not score application {app.id}: {e}")
+    return app

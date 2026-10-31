@@ -19,35 +19,55 @@ export const mockResponses = {
 
   'GET /jobs': [
     {
-      id: 1,
-      title: 'Senior Backend Engineer',
-      description: 'We are hiring an experienced backend engineer.',
-      rubric_json: {
-        experience: { weight: 0.3 },
-        technical_skills: { weight: 0.5 },
-        communication: { weight: 0.2 },
-      },
-      rubric_approved_by: 1,
-      created_at: '2024-01-15T10:00:00',
+      id: 1, title: 'Junior Backend Developer (Python)',
+      description: 'We are looking for a junior backend developer to build and maintain REST APIs.',
+      rubric: [
+        { key: 'python_backend', label: 'Python & a backend framework', weight: 30, must_have: true },
+        { key: 'databases', label: 'Databases & SQL', weight: 20, must_have: false },
+        { key: 'experience', label: 'Relevant experience', weight: 20, must_have: false },
+        { key: 'projects', label: 'Projects & achievements', weight: 15, must_have: false },
+        { key: 'tools', label: 'Git, Docker & testing', weight: 15, must_have: false },
+      ],
+      applications: 5, status_counts: { SCORED: 3, QUARANTINED: 2 }, quarantined: 2,
+      created_at: '2026-10-31T10:00:00',
     },
   ],
 
+  'GET /jobs/:id': {
+    id: 1, title: 'Junior Backend Developer (Python)', description: 'REST APIs with Python.',
+    rubric: [
+        { key: 'python_backend', label: 'Python & a backend framework', weight: 30, must_have: true },
+        { key: 'databases', label: 'Databases & SQL', weight: 20, must_have: false },
+        { key: 'experience', label: 'Relevant experience', weight: 20, must_have: false },
+        { key: 'projects', label: 'Projects & achievements', weight: 15, must_have: false },
+        { key: 'tools', label: 'Git, Docker & testing', weight: 15, must_have: false },
+      ], applications: 5, status_counts: { SCORED: 3, QUARANTINED: 2 }, quarantined: 2,
+  },
+
   'GET /candidates': [
-    {
-      id: 1,
-      name: 'Alice Smith',
-      email: 'alice@example.com',
-      status: 'SCREENED',
-      score: 8.5,
-    },
-    {
-      id: 2,
-      name: 'Bob Jones',
-      email: 'bob@example.com',
-      status: 'SCREENED',
-      score: 7.2,
-    },
+    { id: 1, rank: 1, alias: 'Candidate #001', name: 'Sara Ben Ali', status: 'SCORED', total: 77, scored_by: 'ai',
+      summary: 'Strong junior backend profile with FastAPI internship and tested projects.', flags: [],
+      criteria: [{ label: 'Python & a backend framework', score: 5 }, { label: 'Databases & SQL', score: 4 }, { label: 'Relevant experience', score: 4 }, { label: 'Projects & achievements', score: 0 }, { label: 'Git, Docker & testing', score: 5 }] },
+    { id: 2, rank: 2, alias: 'Candidate #002', name: 'Youssef Trabelsi', status: 'SCORED', total: 49, scored_by: 'ai',
+      summary: 'Some Python and Flask, limited professional experience.', flags: [],
+      criteria: [{ label: 'Python & a backend framework', score: 3 }, { label: 'Databases & SQL', score: 3 }, { label: 'Relevant experience', score: 1 }, { label: 'Projects & achievements', score: 3 }, { label: 'Git, Docker & testing', score: 1 }] },
+    { id: 4, rank: null, alias: 'Candidate #004', name: 'Karim Mansour', status: 'QUARANTINED', total: null, flags: ['hidden_text', 'prompt_injection'], criteria: [] },
   ],
+
+  'GET /candidates/:id': {
+    id: 1, alias: 'Candidate #001', name: 'Sara Ben Ali', email: 'sara.benali@candidate-mail.test', status: 'SCORED',
+    job: { id: 1, title: 'Junior Backend Developer (Python)' }, email_id: 9, removed_personal_info: 4,
+    anonymized_cv: '[name] (FICTIONAL CANDIDATE)\n[email removed]\nSKILLS\nPython, FastAPI, Django, PostgreSQL, SQL, Git, Docker, pytest',
+    security: { flags: [], hidden_text: [] },
+    score: {
+      total: 77, source: 'ai', model: 'openai/gpt-oss-120b', summary: 'Strong junior backend profile.',
+      strengths: ['FastAPI internship', 'Testing culture'], gaps: ['No cloud experience'], flags: [],
+      criteria: [
+        { key: 'python_backend', label: 'Python & a backend framework', weight: 30, must_have: true, score: 5, ai_score: 5, evidence: 'Python, FastAPI, Django, PostgreSQL', verified: true, reason: 'Two frameworks.', note: '' },
+        { key: 'projects', label: 'Projects & achievements', weight: 15, must_have: false, score: 0, ai_score: 5, evidence: 'Led a team of 20 engineers at Google', verified: false, reason: 'Invented by the AI', note: 'Unsupported: the quote was not found in the CV, so no points were given.' },
+      ],
+    },
+  },
 
   'GET /approvals': [
     {
