@@ -8,6 +8,7 @@ import { apiGet, apiPost } from '../api'
 import StatusBadge from '../components/StatusBadge'
 import ScoreBar from '../components/ScoreBar'
 import RecommendationBadge from '../components/RecommendationBadge'
+import { baseURL } from '../api/client'
 
 export default function Candidate() {
   const { id } = useParams()
@@ -249,13 +250,63 @@ export default function Candidate() {
                 {' · '}{new Date(c.final_decision.created_at).toLocaleString()}
               </span>
               {c.final_decision.note && <p className="mt-2 text-gray-700">Note: "{c.final_decision.note}"</p>}
-              <Link to="/approvals" className="block mt-2 text-blue-600 hover:underline">The email to the candidate is in Approvals →</Link>
+              {c.final_decision.decision === 'reject' && <Link to="/approvals" className="block mt-2 text-blue-600 hover:underline">The email to the candidate is in Approvals →</Link>}
             </div>
           )}
           {quarantined && <p className="text-sm text-gray-600">Blocked CVs cannot be scored or shortlisted automatically.</p>}
           {c.status !== 'EVALUATED' && <p className="text-xs text-gray-400 ml-auto">Only a logged-in human can shortlist or decide. The AI cannot.</p>}
         </div>
       </div>
+
+      {c.scheduling && (
+        <div className="bg-white rounded-lg shadow p-6 mb-6">
+          <p className="text-xs uppercase tracking-wide text-gray-500 mb-3">
+            Final interview scheduling {c.scheduling.round > 1 ? `· round ${c.scheduling.round}` : ''}
+          </p>
+          {c.scheduling.status === 'booked' && (() => {
+            const b = c.scheduling.slots.find((s) => s.status === 'booked')
+            return (
+              <div className="flex flex-wrap items-center gap-4">
+                <p className="text-lg">📅 Booked: <b>{new Date(b.start).toLocaleString(undefined, { weekday: 'long', day: 'numeric', month: 'long', hour: '2-digit', minute: '2-digit' })}</b></p>
+                <a href={`${baseURL}/candidates/${id}/interview.ics`} className="px-3 py-1.5 rounded border border-gray-300 text-sm hover:bg-gray-50">Download calendar file (.ics)</a>
+                <Link to="/agenda" className="text-sm text-blue-600 hover:underline">See it in the Agenda →</Link>
+              </div>
+            )
+          })()}
+          {['draft', 'pending'].includes(c.scheduling.status) && (
+            <div>
+              <p className="text-sm text-gray-700 mb-2">
+                {c.scheduling.status === 'draft'
+                  ? <>3 times are reserved in your calendar. <Link to="/approvals" className="text-blue-600 hover:underline">Approve the email to send them →</Link></>
+                  : <>Sent — waiting for the candidate to choose (reserved until {new Date(c.scheduling.expires_at).toLocaleString()}).
+                      {c.scheduling.link && <a href={new URL(c.scheduling.link).pathname} target="_blank" rel="noreferrer" className="ml-2 text-blue-600 hover:underline">Open the candidate's link (demo) ↗</a>}</>}
+              </p>
+              <div className="flex flex-wrap gap-2">
+                {c.scheduling.slots.map((s) => (
+                  <span key={s.id} className="text-sm bg-blue-50 text-blue-900 rounded px-3 py-1">
+                    {new Date(s.start).toLocaleString(undefined, { weekday: 'short', day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}
+                  </span>
+                ))}
+              </div>
+            </div>
+          )}
+          {['declined', 'expired', 'cancelled'].includes(c.scheduling.status) && (
+            <div>
+              {c.scheduling.status === 'declined' && (
+                <p className="text-sm text-amber-900 bg-amber-50 rounded p-3 mb-3">
+                  None of the times worked for the candidate. Their availability: <i>"{c.scheduling.availability_note}"</i>
+                </p>
+              )}
+              {c.scheduling.status === 'expired' && <p className="text-sm text-gray-700 mb-3">The candidate did not answer in time; the times were released.</p>}
+              {c.scheduling.status === 'cancelled' && <p className="text-sm text-gray-700 mb-3">You rejected the scheduling email; the times were released.</p>}
+              <button onClick={() => act('reschedule', `/candidates/${id}/schedule/new`, '3 new times reserved. Approve the email in Approvals to send them.')}
+                disabled={!!busy} className="px-4 py-2 rounded-lg bg-blue-600 text-white font-medium hover:bg-blue-700 disabled:opacity-50">
+                {busy === 'reschedule' ? 'Finding times…' : 'Propose 3 new times'}
+              </button>
+            </div>
+          )}
+        </div>
+      )}
 
       {c.evaluation && (
         <div className="bg-white rounded-lg shadow p-6 mb-6">

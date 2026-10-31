@@ -11,12 +11,15 @@ from sqlmodel import Session, select
 
 from ..audit import log_audit
 from ..auth import require_role
+from ..config import settings
 from ..db import get_session
 from ..models import Draft, DraftStatus, DraftType, Email, EmailStatus, Event, EventStatus, User, UserRole
 from ..services.digest import URGENCY_ORDER
 from ..services.drafter import draft_reply
 from ..services.inbox import fetch_new_emails, load_demo_emails
 from ..services.triage import process_incoming
+from ..services import scheduler
+from ..models import Application, InterviewSlot, SlotStatus
 
 router = APIRouter(tags=["emails"])
 human = require_role(UserRole.RECRUITER, UserRole.ADMIN)
@@ -131,23 +134,50 @@ def mark_handled(email_id: int, db: Session = Depends(get_session), user: User =
 
 @router.get("/events")
 def list_events(status: Optional[str] = None, db: Session = Depends(get_session)):
-    """Meetings and deadlines found in emails, soonest first."""
+    """Meetings and deadlines found in emails + interviews booked or reserved, soonest first."""
+    scheduler.expire_stale(db)
     q = select(Event)
     if status:
         q = q.where(Event.status == status)
-    rows = sorted(db.exec(q).all(), key=lambda ev: (ev.date or "9999", ev.time or "99:99"))
     out = []
-    for ev in rows:
+    for ev in db.exec(q).all():
         src = db.get(Email, ev.email_id)
-        out.append({**ev.model_dump(), "with_people": ev.attendees_json,
+        conflict = None
+        if ev.type == "meeting" and ev.date and ev.time and ev.status != EventStatus.DISMISSED:
+            try:
+                start = datetime.strptime(f"{ev.date} {ev.time}", "%Y-%m-%d %H:%M")
+                slot = scheduler.interview_conflict(db, start)
+                conflict = f"Clashes with the interview of Candidate #{slot.application_id:03d} at {slot.start:%H:%M}" if slot else None
+            except ValueError:
+                pass
+        out.append({**ev.model_dump(), "with_people": ev.attendees_json, "conflict": conflict,
                     "email_subject": src.subject if src else "", "email_from": src.from_name or src.from_addr if src else ""})
+    if not status or status in ("confirmed", "suggested"):
+        for slot in db.exec(select(InterviewSlot).where(InterviewSlot.status.in_([SlotStatus.HELD, SlotStatus.BOOKED]))).all():
+            out.append({
+                "id": f"interview-{slot.id}", "type": "interview", "application_id": slot.application_id,
+                "title": f"Final interview - Candidate #{slot.application_id:03d}",
+                "date": slot.start.strftime("%Y-%m-%d"), "time": slot.start.strftime("%H:%M"),
+                "location": settings.interview_location, "with_people": [],
+                "status": "booked" if slot.status == SlotStatus.BOOKED else "reserved",
+                "email_subject": "", "email_from": "", "conflict": None,
+            })
+    out.sort(key=lambda ev: (ev["date"] or "9999", ev["time"] or "99:99"))
     return out
 
 
-def _decide_event(event_id: int, status: EventStatus, db: Session, user: User):
+def _decide_event(event_id: int, status: EventStatus, db: Session, user: User, force: bool = False):
     ev = db.get(Event, event_id)
     if not ev:
         raise HTTPException(404, "Event not found")
+    if status == EventStatus.CONFIRMED and not force and ev.type == "meeting" and ev.date and ev.time:
+        try:
+            slot = scheduler.interview_conflict(db, datetime.strptime(f"{ev.date} {ev.time}", "%Y-%m-%d %H:%M"))
+        except ValueError:
+            slot = None
+        if slot:
+            raise HTTPException(409, f"This meeting clashes with the interview of Candidate #{slot.application_id:03d} "
+                                     f"at {slot.start:%H:%M}. Confirm anyway, or ask the sender for another time.")
     ev.status = status
     ev.decided_by = f"user:{user.id}"
     db.add(ev)
@@ -158,9 +188,9 @@ def _decide_event(event_id: int, status: EventStatus, db: Session, user: User):
 
 
 @router.post("/events/{event_id}/confirm")
-def confirm_event(event_id: int, db: Session = Depends(get_session), user: User = Depends(human)):
-    """✋ HR confirms a meeting/deadline (adds it to the agenda)."""
-    return _decide_event(event_id, EventStatus.CONFIRMED, db, user)
+def confirm_event(event_id: int, force: bool = False, db: Session = Depends(get_session), user: User = Depends(human)):
+    """✋ HR confirms a meeting/deadline. Refused (409) if it clashes with an interview, unless force=true."""
+    return _decide_event(event_id, EventStatus.CONFIRMED, db, user, force)
 
 
 @router.post("/events/{event_id}/dismiss")

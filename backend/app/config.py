@@ -32,6 +32,16 @@ class Settings(BaseSettings):
     imap_password: str = ""
     hr_mailbox: str = "hr@fictional-company.test"
 
+    # Interview scheduling (HR working hours, local time)
+    work_day_start: int = 9
+    work_day_end: int = 17
+    lunch_start: int = 12
+    lunch_end: int = 13
+    interview_minutes: int = 60
+    slot_hold_hours: int = 48
+    work_days: str = "0,1,2,3,4"   # Monday=0 ... Sunday=6
+    interview_location: str = "Fictional Company HQ, Room B (or a video link sent by HR)"
+
     # Login sessions
     session_hours: int = 8
     cookie_secure: bool = False   # set True when served over HTTPS

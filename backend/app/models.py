@@ -249,6 +249,48 @@ class Decision(SQLModel, table=True):
     created_at: NaiveDatetime = Field(default_factory=datetime.now)
 
 
+class OfferStatus(str, Enum):
+    DRAFT = "draft"          # email with the slots is waiting for HR approval
+    PENDING = "pending"      # sent: candidate can pick a slot (slots are held)
+    BOOKED = "booked"
+    DECLINED = "declined"    # candidate said none of the slots work
+    EXPIRED = "expired"      # nobody answered in time: slots released
+    CANCELLED = "cancelled"
+
+
+class ScheduleOffer(SQLModel, table=True):
+    """A set of 3 interview slots proposed to one candidate, answered through a one-time link."""
+    __tablename__ = "schedule_offers"
+
+    id: Optional[int] = Field(default=None, primary_key=True)
+    application_id: int = Field(foreign_key="applications.id", index=True)
+    draft_id: Optional[int] = Field(default=None, foreign_key="drafts.id")
+    token_hash: str = Field(index=True)
+    status: OfferStatus = OfferStatus.DRAFT
+    round: int = 1
+    availability_note: str = ""   # what the candidate wrote when declining
+    expires_at: NaiveDatetime
+    created_at: NaiveDatetime = Field(default_factory=datetime.now)
+
+
+class SlotStatus(str, Enum):
+    HELD = "held"            # reserved while the candidate decides
+    BOOKED = "booked"
+    RELEASED = "released"
+
+
+class InterviewSlot(SQLModel, table=True):
+    """One proposed interview time. Held and booked slots block HR's calendar."""
+    __tablename__ = "interview_slots"
+
+    id: Optional[int] = Field(default=None, primary_key=True)
+    offer_id: int = Field(foreign_key="schedule_offers.id", index=True)
+    application_id: int = Field(foreign_key="applications.id", index=True)
+    start: NaiveDatetime
+    end: NaiveDatetime
+    status: SlotStatus = SlotStatus.HELD
+
+
 class UserSession(SQLModel, table=True):
     """Server-side login session. The browser only holds a random token (HttpOnly cookie);
     we store its SHA-256 hash, so a database leak does not leak usable sessions."""

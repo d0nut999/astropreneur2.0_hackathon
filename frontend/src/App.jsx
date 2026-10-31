@@ -14,6 +14,7 @@ import Candidate from './pages/Candidate'
 import Approvals from './pages/Approvals'
 import Audit from './pages/Audit'
 import Portal from './pages/Portal'
+import Schedule from './pages/Schedule'
 
 export default function App() {
   return (
@@ -23,6 +24,7 @@ export default function App() {
         {/* Public routes */}
         <Route path="/login" element={<Login />} />
         <Route path="/portal/:token" element={<Portal />} />
+        <Route path="/schedule/:token" element={<Schedule />} />
 
         {/* Protected routes with layout */}
         <Route element={<RequireAuth><Layout /></RequireAuth>}>

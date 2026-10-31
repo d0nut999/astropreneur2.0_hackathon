@@ -4,7 +4,7 @@
  */
 import axios from 'axios'
 
-const baseURL = import.meta.env.VITE_API_URL || 'http://localhost:8000'
+export const baseURL = import.meta.env.VITE_API_URL || 'http://localhost:8000'
 
 let csrfToken = ''
 export function setCsrfToken(token) {
@@ -31,7 +31,7 @@ client.interceptors.response.use(
     const path = window.location.pathname
     const url = error.config?.url || ''
     // Session expired -> back to login (but never on the public candidate portal)
-    if (error.response?.status === 401 && !path.startsWith('/login') && !path.startsWith('/portal') && !url.includes('/auth/')) {
+    if (error.response?.status === 401 && !path.startsWith('/login') && !path.startsWith('/portal') && !path.startsWith('/schedule') && !url.includes('/auth/')) {
       window.location.href = `/login?next=${encodeURIComponent(path)}`
     }
     return Promise.reject(error)

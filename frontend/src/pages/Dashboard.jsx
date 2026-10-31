@@ -123,7 +123,7 @@ export default function Dashboard() {
                   <div className="font-semibold">{ev.time || '—'}</div>
                 </div>
                 <div className="min-w-0">
-                  <div className="font-medium truncate">{ev.type === 'meeting' ? '📅' : '⏰'} {ev.title}</div>
+                  <div className="font-medium truncate">{ev.type === 'interview' ? '🤝' : ev.type === 'meeting' ? '📅' : '⏰'} {ev.title}</div>
                   <div className="text-xs text-gray-500 truncate">
                     {ev.location}{ev.location && ev.with_people?.length ? ' · ' : ''}{ev.with_people?.join(', ')}
                   </div>

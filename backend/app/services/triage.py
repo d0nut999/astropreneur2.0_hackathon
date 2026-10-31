@@ -46,6 +46,19 @@ def process_incoming(db: Session, raw: dict, now: datetime | None = None) -> Ema
         security_flags=security_flags,
     )
 
+    # A new meeting request that clashes with an interview must be seen quickly
+    if analysis.meeting and analysis.meeting.date and analysis.meeting.time and urgency != "flagged":
+        from .scheduler import interview_conflict
+        try:
+            start = datetime.strptime(f"{analysis.meeting.date} {analysis.meeting.time}", "%Y-%m-%d %H:%M")
+            slot = interview_conflict(db, start)
+        except ValueError:
+            slot = None
+        if slot:
+            urgency = "urgent"
+            reasons = [f"Clashes with the interview of Candidate #{slot.application_id:03d} at {slot.start:%H:%M}"] + \
+                [r for r in reasons if not r.startswith("Information only")]
+
     email_row = Email(
         message_id=raw.get("message_id", ""),
         from_name=raw.get("from_name", ""),

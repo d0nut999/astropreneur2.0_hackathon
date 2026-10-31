@@ -9,6 +9,8 @@ import { prettyDate } from '../utils/format'
 
 const STATUS_STYLE = {
   suggested: 'bg-yellow-50 text-yellow-800 ring-yellow-200',
+  booked: 'bg-indigo-50 text-indigo-800 ring-indigo-200',
+  reserved: 'bg-indigo-50 text-indigo-600 ring-indigo-100',
   confirmed: 'bg-green-50 text-green-800 ring-green-200',
   dismissed: 'bg-gray-100 text-gray-500 ring-gray-200',
 }
@@ -34,12 +36,17 @@ export default function Agenda() {
     load()
   }, [])
 
-  const decide = async (id, action) => {
+  const [clash, setClash] = useState(null) // { id, message }
+
+  const decide = async (id, action, force = false) => {
+    setError('')
     try {
-      await apiPost(`/events/${id}/${action}`)
+      await apiPost(`/events/${id}/${action}${force ? '?force=true' : ''}`)
+      setClash(null)
       setEvents(events.map((ev) => (ev.id === id ? { ...ev, status: action === 'confirm' ? 'confirmed' : 'dismissed' } : ev)))
     } catch (err) {
-      setError(err.response?.data?.detail || 'Action failed')
+      if (err.response?.status === 409) setClash({ id, message: err.response.data.detail })
+      else setError(err.response?.data?.detail || 'Action failed')
     }
   }
 
@@ -79,19 +86,31 @@ export default function Agenda() {
               {list.map((ev) => (
                 <div key={ev.id} className="bg-white rounded-lg shadow p-4 flex items-center gap-4">
                   <div className="w-16 text-center">
-                    <div className="text-2xl">{ev.type === 'meeting' ? '📅' : '⏰'}</div>
+                    <div className="text-2xl">{ev.type === 'interview' ? '🤝' : ev.type === 'meeting' ? '📅' : '⏰'}</div>
                     <div className="text-sm font-semibold text-gray-700">{ev.time || (ev.type === 'deadline' ? 'Due' : '')}</div>
                   </div>
                   <div className="flex-1 min-w-0">
                     <div className="font-medium truncate">{ev.title}</div>
                     <div className="text-sm text-gray-500 truncate">
-                      {ev.type === 'meeting' ? 'Meeting' : 'Deadline'}
+                      {ev.type === 'interview' ? (ev.status === 'reserved' ? 'Interview time reserved (waiting for the candidate)' : 'Interview booked') : ev.type === 'meeting' ? 'Meeting' : 'Deadline'}
                       {ev.location && ` · ${ev.location}`}
                       {ev.with_people?.length > 0 && ` · with ${ev.with_people.join(', ')}`}
                     </div>
-                    <Link to={`/inbox?id=${ev.email_id}`} className="text-xs text-blue-600 hover:underline">
-                      From: {ev.email_from} — "{ev.email_subject}"
-                    </Link>
+                    {ev.type === 'interview' ? (
+                      <Link to={`/candidates/${ev.application_id}`} className="text-xs text-blue-600 hover:underline">Open candidate →</Link>
+                    ) : (
+                      <Link to={`/inbox?id=${ev.email_id}`} className="text-xs text-blue-600 hover:underline">
+                        From: {ev.email_from} — "{ev.email_subject}"
+                      </Link>
+                    )}
+                    {ev.conflict && <p className="text-xs text-red-700 mt-1">⚠ {ev.conflict}</p>}
+                    {clash?.id === ev.id && (
+                      <div className="mt-2 text-sm bg-red-50 border border-red-200 rounded p-2 text-red-800">
+                        {clash.message}
+                        <button onClick={() => decide(ev.id, 'confirm', true)} className="ml-2 underline">Confirm anyway</button>
+                        <button onClick={() => setClash(null)} className="ml-2 underline">Cancel</button>
+                      </div>
+                    )}
                   </div>
                   <span className={`px-2.5 py-1 rounded-full text-xs font-medium ring-1 ${STATUS_STYLE[ev.status]}`}>{ev.status}</span>
                   {ev.status === 'suggested' && (

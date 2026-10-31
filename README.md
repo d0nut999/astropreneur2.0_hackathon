@@ -36,6 +36,7 @@ Built for the **Secure AI HR System** hackathon (Astropreneur 2.0). All people, 
 | **Written interview** | For a shortlisted candidate the AI prepares 3 questions (2 identical for everyone + 1 tailored to their weakest skill) and an invitation with a personal, one-time link. |
 | **Evaluation & recommendation** | Answers are scored with evidence; HireGuard recommends **Advance / Hold / Not recommended** with a confidence level. |
 | **Human decision** | HR advances or rejects. Every rejection — and advancing someone the AI did not recommend — requires a written reason, saved in the audit log. |
+| **Interview scheduling** | When HR advances a candidate, 3 free times are taken from HR's calendar (working hours, minus lunch, meetings and other interviews) and **held for 48 h**. The candidate picks one on a one-time link (→ booked, calendar file `.ics`), or says none work and gives their availability → HR proposes 3 new times matching it. Meetings that clash with an interview are flagged urgent and need an explicit "confirm anyway". |
 | **Approval queue** | Every outgoing email (replies, invitations, outcomes) is a draft that HR can edit, approve or reject. |
 | **Audit log** | Append-only record of every AI output and human action. |
 
@@ -43,12 +44,12 @@ Built for the **Secure AI HR System** hackathon (Astropreneur 2.0). All people, 
 
 ## 2. How it answers the brief
 
-**Functional axes covered:** Resume Screening & Ranking · Email Summary · Automatic Replies · Candidate Follow-ups (invitations, outcomes) · Interview Scheduling (meetings/deadlines extracted to an agenda).
+**Functional axes covered:** Resume Screening & Ranking · Email Summary · Automatic Replies · Candidate Follow-ups (invitations, outcomes) · Interview Scheduling (slots proposed from the recruiter's calendar, held, booked, re-proposed; clash detection).
 
 | Requirement | How HireGuard proves it |
 |---|---|
 | **Intelligent** | Ranked shortlist with per-criterion justification and CV quotes; urgency with reasons; tailored interview question; recommendation with evidence and confidence. |
-| **Reliable** | Every AI output is validated against a schema (retries + fallback model). If the AI is down, **offline rules** take over so the app never stops. Evidence quotes are checked against the source. Totals and recommendations are computed by code. 47 automated tests. |
+| **Reliable** | Every AI output is validated against a schema (retries + fallback model). If the AI is down, **offline rules** take over so the app never stops. Evidence quotes are checked against the source. Totals and recommendations are computed by code. 54 automated tests. |
 | **Human in the loop** | Shortlisting, invitations, final decisions, sending any email and confirming meetings are **human-only**, enforced in the backend state machine (the AI is rejected with `StateTransitionError`), not just hidden in the UI. |
 | **Security** | AI security (prompt-injection detection in emails, CVs and answers; hidden-text detection; tool-less AI), system security (file checks, random filenames, secrets in `.env`), web security (sessions, CSRF, brute-force lockout, CSP, plain-text rendering). See [§6](#6-security). |
 
@@ -64,7 +65,8 @@ Log in at **http://localhost:5173** with `recruiter@fictional-company.test` / `r
 4. **Shortlist** → **Prepare interview invitation** → **Approvals**: read, edit, *Approve & send*.
 5. Back on the candidate: *Open the candidate's link (demo)* → answer the 3 questions as the candidate → send. Opening the link again: *already used*.
 6. The candidate page now shows the **recommendation** (e.g. *Advance, 87% confidence*: CV 92 × 40% + interview 67 × 60%). Click **Reject** → refused until you write a reason (every rejection must be explainable). Click **Advance** → the outcome email waits in Approvals.
-7. **Audit**: every step, who did it (AI, system, candidate or `user:2`), when.
+7. **Advance** → 3 interview times are reserved (they skip existing meetings) → approve the email → open the candidate's scheduling link → book one, or click *None of these work* and type "Thursday afternoon" → *Propose 3 new times* follows it. The interview appears in the **Agenda** with a calendar file.
+8. **Audit**: every step, who did it (AI, system, candidate or `user:2`), when.
 
 Optional "live" email: run Mailpit (§8) and `python scripts/send_demo_emails.py 01 07`, then *Sync inbox*.
 
@@ -190,7 +192,7 @@ Alternative: `docker-compose up` (backend, frontend, Mailpit), then `docker exec
 
 ```bash
 cd backend
-python -m pytest -q        # 47 tests
+python -m pytest -q        # 54 tests
 ```
 
 | File | Proves |
@@ -202,6 +204,7 @@ python -m pytest -q        # 47 tests
 | `test_interview.py` | link locked until approval, one-time, expires, rubric never shown, token never stored |
 | `test_evaluation.py` | recommendation rules; manipulative answer → 0 and Hold; every rejection needs a reason; lower confidence near the decision line |
 | `test_auth.py` | login required, CSRF, HttpOnly cookie, logout, brute-force lockout, portal stays public |
+| `test_scheduling.py` | slots avoid meetings, weekends and lunch; booking releases the other slots; refusal → new slots follow availability; unanswered offers expire; a meeting on an interview time is flagged and needs "confirm anyway" |
 | `test_system.py` | demo reset requires login and keeps the audit log |
 
 ---
@@ -240,6 +243,8 @@ GET  /candidates?job_id= · GET /candidates/{id}
 POST /candidates/{id}/shortlist|invite|decision                         ✋
 GET  /approvals · PUT /approvals/{id} · POST /approvals/{id}/approve|reject   ✋
 GET  /portal/{token} · POST /portal/{token}/answers                     (public, one-time token)
+GET  /schedule/{token} · POST /schedule/{token}/book|decline · GET /schedule/{token}/ics   (public, one-time)
+POST /candidates/{id}/schedule/new ✋ · GET /candidates/{id}/interview.ics
 GET  /digest/today · GET /audit · GET /system/status · POST /system/test_ai|reset_demo
 ```
 
@@ -251,9 +256,9 @@ Honest limits of this prototype:
 - Offline fallback rules are simpler than the AI (keyword-based); they keep the app running, not replace it.
 - SQLite and in-memory login throttling suit one server; production would use PostgreSQL and Redis.
 - Mailbox access is read-only IMAP or Mailpit; no Gmail/Outlook OAuth yet.
-- Meetings are extracted and confirmed in HireGuard, not yet written to a real calendar.
+- HR's calendar lives in HireGuard (plus `.ics` export); it is not yet synced two-way with Google/Outlook.
 
-Next steps: calendar integration (propose interview slots), audio answers evaluated on **content only** (transcript, never voice/face), bias monitoring dashboard across hires, data-retention automation, multi-company accounts, HTTPS deployment with `COOKIE_SECURE=true`.
+Next steps: two-way Google/Outlook calendar sync, audio answers evaluated on **content only** (transcript, never voice/face), bias monitoring dashboard across hires, data-retention automation, multi-company accounts, HTTPS deployment with `COOKIE_SECURE=true`.
 
 ---
 

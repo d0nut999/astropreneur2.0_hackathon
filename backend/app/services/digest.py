@@ -3,7 +3,10 @@ from datetime import datetime, timedelta
 
 from sqlmodel import Session, select
 
-from ..models import Application, ApplicationStatus, Draft, DraftStatus, Email, EmailStatus, Event, EventStatus
+from ..models import (
+    Application, ApplicationStatus, Draft, DraftStatus, Email, EmailStatus, Event, EventStatus, InterviewSlot,
+    OfferStatus, ScheduleOffer, SlotStatus,
+)
 
 URGENCY_ORDER = {"urgent": 0, "flagged": 1, "normal": 2, "low": 3}
 
@@ -22,6 +25,15 @@ def generate_digest(db: Session, now: datetime | None = None) -> dict:
         [ev for ev in events if ev.date in (today, tomorrow)],
         key=lambda ev: (ev.date or "", ev.time or "99:99"),
     )
+
+    interviews = db.exec(select(InterviewSlot).where(InterviewSlot.status == SlotStatus.BOOKED)).all()
+    interviews_soon = sorted([s for s in interviews if s.start.strftime("%Y-%m-%d") in (today, tomorrow)],
+                             key=lambda s: s.start)
+    declined_offers = db.exec(select(ScheduleOffer).where(ScheduleOffer.status == OfferStatus.DECLINED)).all()
+    latest_by_app = {}
+    for o in db.exec(select(ScheduleOffer).order_by(ScheduleOffer.id)).all():
+        latest_by_app[o.application_id] = o
+    need_new_slots = [o for o in declined_offers if latest_by_app.get(o.application_id) is o]
 
     pending_drafts = db.exec(select(Draft).where(Draft.status == DraftStatus.PENDING)).all()
     new_apps = db.exec(select(Application).where(
@@ -49,6 +61,11 @@ def generate_digest(db: Session, now: datetime | None = None) -> dict:
     waiting = db.exec(select(Application).where(Application.status == ApplicationStatus.EVALUATED)).all()
     if waiting:
         parts.append(f"{len(waiting)} candidate{'s' if len(waiting) > 1 else ''} waiting for your final decision")
+    if interviews_soon:
+        nxt = interviews_soon[0]
+        parts.append(f"{len(interviews_soon)} interview(s) today/tomorrow (next: {nxt.start:%a %H:%M})")
+    if need_new_slots:
+        parts.append(f"{len(need_new_slots)} candidate(s) need new interview times")
     if pending_drafts:
         parts.append(f"{len(pending_drafts)} reply draft(s) waiting for your approval")
     summary = ("Today: " + ", ".join(parts) + ".") if parts else "Inbox is clear. Nothing needs your attention."
@@ -71,7 +88,14 @@ def generate_digest(db: Session, now: datetime | None = None) -> dict:
              "received_at": e.received_at.isoformat()}
             for e in urgent[:6]
         ],
+        "need_new_slots_count": len(need_new_slots),
         "upcoming_events": [
+            {"id": f"interview-{sl.id}", "email_id": None, "application_id": sl.application_id, "type": "interview",
+             "title": f"Final interview - Candidate #{sl.application_id:03d}", "date": sl.start.strftime("%Y-%m-%d"),
+             "time": sl.start.strftime("%H:%M"), "location": "", "with_people": [], "status": "booked",
+             "day": "today" if sl.start.strftime("%Y-%m-%d") == today else "tomorrow"}
+            for sl in interviews_soon
+        ] + [
             {"id": ev.id, "email_id": ev.email_id, "type": ev.type, "title": ev.title, "date": ev.date,
              "time": ev.time, "location": ev.location, "with_people": ev.attendees_json, "status": ev.status,
              "day": "today" if ev.date == today else "tomorrow"}
