@@ -5,7 +5,7 @@ from app.schemas import CriterionScore
 from app.services.anonymizer import anonymize_text
 from app.services.parser import parse_cv
 from app.services.rubric import JUNIOR_BACKEND_RUBRIC, normalize_rubric
-from app.services.scorer import evidence_is_real, score_offline
+from app.services.scorer import evidence_is_real, evidence_match, score_offline
 
 CVS = Path(__file__).resolve().parents[1] / "demo_data" / "cvs"
 RUBRIC = normalize_rubric(JUNIOR_BACKEND_RUBRIC)
@@ -66,3 +66,25 @@ def test_rubric_weights_sum_to_100():
     assert round(sum(c["weight"] for c in RUBRIC)) == 100
     old_format = normalize_rubric({"experience": {"weight": 0.3}, "skills": {"weight": 0.7}})
     assert round(sum(c["weight"] for c in old_format)) == 100
+
+
+ANSWER = ("The hardest problem was database locking and high latency, caused by very frequent spatial queries. "
+          "Throughput went from ~450 req/s to 3,200+ req/s, and p99 latency dropped from 420 ms to 35 ms. "
+          "I wrote an integration test suite that simulates 50 concurrent WebSocket clients.")
+
+
+def test_faithful_rewording_is_accepted():
+    assert evidence_match("Throughput increased from ~450 requests/sec to over 3,200; p99 latency reduced from 420ms to 35ms.", ANSWER)
+    assert evidence_match("The hardest problem was eliminating database locking and high latency caused by spatial queries.", ANSWER)
+    assert evidence_match("Throughput went from ~450 req/s to 3,200+ req/s", ANSWER) == "exact"
+
+
+def test_changed_numbers_and_invented_facts_are_rejected():
+    assert evidence_match("Throughput went from ~450 req/s to 9,000 req/s", ANSWER) is None
+    assert evidence_match("I have 10 years of Kubernetes experience at Amazon", ANSWER) is None
+    assert evidence_match("Designed a machine learning pipeline with TensorFlow and Spark", ANSWER) is None
+
+
+def test_unicode_punctuation_does_not_break_matching():
+    src = "Built a high\u2011frequency trading API \u2014 it\u2019s fast"
+    assert evidence_match("Built a high-frequency trading API - it's fast", src) == "exact"

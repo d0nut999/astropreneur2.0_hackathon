@@ -8,6 +8,7 @@ Safety design:
 - If the AI is unavailable, an offline keyword scorer is used (marked as such).
 """
 import re
+import unicodedata
 from datetime import datetime
 from pathlib import Path
 
@@ -26,17 +27,59 @@ from .rubric import normalize_rubric
 from .security_gate import scan_text_for_injection
 
 PROMPT_PATH = Path(__file__).resolve().parent.parent / "prompts" / "score_cv.md"
-PROMPT_VERSION = "score_v1"
+PROMPT_VERSION = "score_v2"
 MUST_HAVE_CAP = 40  # max total if a must-have criterion is missing
 
 
-def evidence_is_real(evidence: str, text: str) -> bool:
-    """Anti-hallucination: the quote must exist in the CV (small differences allowed)."""
-    ev = " ".join(evidence.lower().split())
+_DASHES = dict.fromkeys(map(ord, "\u2010\u2011\u2012\u2013\u2014\u2015\u2212"), "-")
+_QUOTES = dict.fromkeys(map(ord, "\u2018\u2019\u201a\u201b\u201c\u201d\u201e\u00ab\u00bb"), "'")
+
+
+def _norm(text: str) -> str:
+    """Lowercase, unify unicode dashes/quotes/spaces, drop punctuation."""
+    t = unicodedata.normalize("NFKC", text or "").translate(_DASHES).translate(_QUOTES).lower()
+    t = re.sub(r"[^\w\s.%,/-]", " ", t)
+    return " ".join(t.split())
+
+
+def _numbers(text: str) -> set[str]:
+    return {n.replace(",", "") for n in re.findall(r"\d[\d,]*(?:\.\d+)?", text)}
+
+
+def _words(normed: str) -> list[str]:
+    # split "420ms" -> "420", "ms" and strip punctuation around words
+    t = re.sub(r"(\d)([a-z])", r"\1 \2", re.sub(r"([a-z])(\d)", r"\1 \2", normed))
+    return [w.strip(".,/-%") for w in t.replace("/", " ").split() if w.strip(".,/-%")]
+
+
+def evidence_match(evidence: str, source: str) -> str | None:
+    """How well is the AI's quote supported by the source text?
+
+    "exact"      the quote is in the text (small differences allowed)
+    "paraphrase" a faithful rewording: most of its words are in the text
+    None         not supported -> treated as invented
+    In every case, EVERY number in the quote must appear in the text (no invented metrics).
+    """
+    ev, src = _norm(evidence), _norm(source)
     if len(ev) < 4:
-        return False
-    cv = " ".join(text.lower().split())
-    return ev in cv or fuzz.partial_ratio(ev, cv) >= 90
+        return None
+    nums = _numbers(evidence)
+    if not nums <= _numbers(source):
+        return None  # an invented or changed number is never accepted
+    if ev in src or fuzz.partial_ratio(ev, src) >= 90:
+        return "exact"
+    words = [w for w in _words(ev) if len(w) >= 3 or w.isdigit()]
+    if len(words) < 3:
+        return None
+    src_words = set(_words(src))
+    covered = sum(1 for w in words if w in src_words or (len(w) > 4 and any(sw.startswith(w[:5]) for sw in src_words)))
+    needed = 0.5 if len(nums) >= 2 else 0.75  # matching numbers are strong proof
+    return "paraphrase" if covered / len(words) >= needed else None
+
+
+def evidence_is_real(evidence: str, text: str) -> bool:
+    """Anti-hallucination: the quote must be supported by the text (exact or faithful paraphrase)."""
+    return evidence_match(evidence, text) is not None
 
 
 def score_candidate(anonymized_text: str, rubric: list[dict], job: Job, db: Session | None = None) -> tuple[CVScoring, str]:
@@ -108,7 +151,8 @@ def score_application(db: Session, app: Application, actor: str = "ai") -> Score
     rows, total, missing_must = [], 0.0, []
     for c in rubric:
         cs = result.criteria.get(c["key"]) or CriterionScore()
-        verified = evidence_is_real(cs.evidence, anon) if cs.evidence else False
+        match = evidence_match(cs.evidence, anon) if cs.evidence else None
+        verified = match is not None
         score = cs.score
         note = ""
         if cs.score > 0 and not verified:
@@ -118,7 +162,7 @@ def score_application(db: Session, app: Application, actor: str = "ai") -> Score
         total += score / 5 * c["weight"]
         rows.append({
             "key": c["key"], "label": c["label"], "weight": c["weight"], "must_have": c["must_have"],
-            "score": score, "ai_score": cs.score, "evidence": cs.evidence, "verified": verified,
+            "score": score, "ai_score": cs.score, "evidence": cs.evidence, "verified": verified, "match": match,
             "reason": cs.reason, "note": note,
         })
 

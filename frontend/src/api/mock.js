@@ -162,6 +162,10 @@ export const mockResponses = {
     { id: 3, email_id: 4, type: 'deadline', title: 'Send signed contract to Finance', date: new Date(Date.now() + 86400000).toISOString().slice(0, 10), time: null, location: '', with_people: [], status: 'suggested', email_subject: 'Contract needed for new hire', email_from: 'Sami Jlassi (Finance)' },
   ],
 
+  'GET /system/status': { ai_configured: true, ai_model: 'openai/gpt-oss-120b', ai_provider: 'api.groq.com', mode: 'ai', counts: {} },
+  'POST /system/test_ai': { ok: true, message: 'AI connected (mock)' },
+  'POST /system/reset_demo': { ok: true, message: 'Demo reset. 15 demo emails loaded.' },
+
   'POST /emails/load_demo': { imported: 15, already_had: 0, ids: [] },
   'POST /emails/sync': { source: 'mailpit', imported: 0, already_had: 0, ids: [] },
 

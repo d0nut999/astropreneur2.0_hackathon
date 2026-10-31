@@ -334,7 +334,9 @@ Each teammate uses their own key in their own `.env` (never commit `.env`).
 
 ### Task 9 — Email triage backend ✅ DONE
 
-### CV scoring & ranking ✅ DONE (parser → anonymizer → scorer with evidence check → ranked list, blind mode)
+### CV scoring & ranking ✅ DONE
+
+### Interview, evaluation, decision, login, demo tools ✅ DONE (see README) (parser → anonymizer → scorer with evidence check → ranked list, blind mode)
 
 1. `models.py` / `schemas.py`: add the fields, enums and `EmailAnalysis` above.
 2. `services/inbox.py`: `load_demo_emails()`, `fetch_from_mailpit()`, `fetch_from_imap()`; pipeline in `services/triage.py`.

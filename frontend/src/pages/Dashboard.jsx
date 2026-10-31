@@ -5,6 +5,7 @@ import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { apiGet, apiPost } from '../api'
 import CategoryTag from '../components/CategoryTag'
+import DemoControls from '../components/DemoControls'
 import { timeAgo } from '../utils/format'
 
 function Card({ label, value, color, to }) {
@@ -133,6 +134,7 @@ export default function Dashboard() {
           </div>
         </div>
       </div>
+      <DemoControls onReset={load} />
     </div>
   )
 }

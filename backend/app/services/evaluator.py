@@ -18,7 +18,7 @@ from ..models import Application, ApplicationStatus, Evaluation, Job, Score, Vid
 from ..schemas import AnswerEvaluation, CriterionScore
 from ..state_machine import transition
 from .interview import questions_for
-from .scorer import evidence_is_real
+from .scorer import evidence_match
 from .security_gate import scan_text_for_injection
 
 PROMPT_PATH = Path(__file__).resolve().parent.parent / "prompts" / "evaluate_answers.md"
@@ -80,7 +80,7 @@ def evaluate_interview(db: Session, app: Application) -> Evaluation:
         )
         result = complete_json(task="evaluate_answers", system=PROMPT_PATH.read_text(encoding="utf-8"),
                                user=f"<job>{job.title}</job>\n\n{blocks}", schema=AnswerEvaluation,
-                               prompt_version="evaluate_v1", db=db)
+                               prompt_version="evaluate_v2", db=db)
         source = "ai"
     except LLMError as e:
         print(f"[evaluator] AI unavailable, using offline evaluation: {e}")
@@ -95,7 +95,8 @@ def evaluate_interview(db: Session, app: Application) -> Evaluation:
     per_q, total, verified_count, words = [], 0.0, 0, 0
     for a in answers:
         cs = result.per_question.get(str(a["question_id"])) or CriterionScore()
-        verified = evidence_is_real(cs.evidence, a["answer"]) if cs.evidence else False
+        match = evidence_match(cs.evidence, a["answer"]) if cs.evidence else None
+        verified = match is not None
         score = cs.score if (verified or cs.score == 0) else 0
         note = "" if (verified or cs.score == 0) else "Quote not found in the answer: no points given."
         if scan_text_for_injection(a["answer"]):
@@ -104,7 +105,7 @@ def evaluate_interview(db: Session, app: Application) -> Evaluation:
         words += len(a["answer"].split())
         total += score
         per_q.append({"question_id": a["question_id"], "question": a["question"], "is_tailored": a.get("is_tailored"),
-                      "score": score, "ai_score": cs.score, "evidence": cs.evidence, "verified": verified,
+                      "score": score, "ai_score": cs.score, "evidence": cs.evidence, "verified": verified, "match": match,
                       "reason": cs.reason, "note": note})
 
     interview_score = round(total / (5 * len(answers)) * 100, 1)

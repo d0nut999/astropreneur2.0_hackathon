@@ -18,6 +18,7 @@ export default function Candidate() {
   const [busy, setBusy] = useState('')
   const [notice, setNotice] = useState('')
   const [note, setNote] = useState('')
+  const [decisionError, setDecisionError] = useState('')
 
   const load = async () => {
     try {
@@ -48,7 +49,15 @@ export default function Candidate() {
     }
   }
 
+  const rec = c?.evaluation?.recommendation
+  const needsReason = (d) => (d === 'advance' && rec === 'Not recommended') || (d === 'reject' && rec === 'Advance')
+
   const decide = async (decision) => {
+    setDecisionError('')
+    if (needsReason(decision) && note.trim().length < 10) {
+      setDecisionError(`The AI recommended "${rec}". To ${decision} instead, please write a short reason (10+ characters) in the box above. It is saved in the audit log.`)
+      return
+    }
     setBusy(decision)
     setNotice('')
     try {
@@ -56,7 +65,7 @@ export default function Candidate() {
       setNotice(res.data.message)
       await load()
     } catch (err) {
-      setNotice(err.response?.data?.detail || 'Could not save the decision')
+      setDecisionError(err.response?.data?.detail || 'Could not save the decision')
     } finally {
       setBusy('')
     }
@@ -145,7 +154,7 @@ export default function Candidate() {
                     <div className={`mt-2 border-l-4 pl-3 py-1 text-sm ${cr.verified ? 'border-blue-400 bg-blue-50' : 'border-red-400 bg-red-50'}`}>
                       <span className="italic">"{cr.evidence}"</span>
                       <span className={`ml-2 text-xs ${cr.verified ? 'text-green-700' : 'text-red-700'}`}>
-                        {cr.verified ? '✓ found in CV' : '✗ not found in CV'}
+                        {cr.match === 'paraphrase' ? '≈ close rewording of the CV' : cr.verified ? '✓ found in CV' : '✗ not found in CV'}
                       </span>
                     </div>
                   ) : (
@@ -207,12 +216,17 @@ export default function Candidate() {
           )}
           {c.status === 'EVALUATED' && (
             <div className="w-full">
+              <button onClick={() => act('evaluate', `/candidates/${id}/evaluate`, 'Answers re-evaluated.')} disabled={!!busy}
+                className="float-right px-3 py-1.5 text-sm rounded border border-gray-300 hover:bg-gray-50 disabled:opacity-50">
+                {busy === 'evaluate' ? 'Re-evaluating…' : '↻ Re-evaluate answers'}
+              </button>
               <p className="text-sm text-gray-700 mb-2">
                 The AI recommends <RecommendationBadge value={c.evaluation?.recommendation} />. The final decision is yours.
               </p>
-              <textarea value={note} onChange={(e) => setNote(e.target.value)}
-                placeholder="Optional note (required if you disagree with the AI)"
-                className="w-full border rounded-lg p-2 text-sm h-16 mb-3" />
+              <textarea value={note} onChange={(e) => { setNote(e.target.value); setDecisionError('') }}
+                placeholder="Note — required if you decide differently from the AI (e.g. 'Salary expectations above budget')"
+                className={`w-full border rounded-lg p-2 text-sm h-16 mb-2 ${decisionError ? 'border-red-400 ring-2 ring-red-200' : ''}`} />
+              {decisionError && <p className="text-sm text-red-700 mb-2">{decisionError}</p>}
               <div className="flex gap-3">
                 <button onClick={() => decide('advance')} disabled={!!busy}
                   className="px-4 py-2 rounded-lg bg-green-600 text-white font-medium hover:bg-green-700 disabled:opacity-50">
@@ -271,7 +285,7 @@ export default function Candidate() {
                 <ScoreBar value={q.score} max={5} small />
                 {q.evidence && (
                   <p className={`text-xs mt-2 italic ${q.verified ? 'text-blue-900' : 'text-red-700'}`}>
-                    "{q.evidence}" {q.verified ? '✓' : '✗ not in answer'}
+                    "{q.evidence}" {q.match === 'paraphrase' ? '≈ close rewording of the answer' : q.verified ? '✓ in answer' : '✗ not in answer'}
                   </p>
                 )}
                 <p className="text-xs text-gray-600 mt-1">{q.reason}</p>

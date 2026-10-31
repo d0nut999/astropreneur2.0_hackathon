@@ -9,7 +9,7 @@ from .db import init_db
 from .security_headers import SecurityHeadersMiddleware
 from . import routes
 from .routes import (  # noqa: F401  (import so routes.<name> is available)
-    approvals, audit, auth, candidates, digest, emails, health, jobs, portal,
+    approvals, audit, auth, candidates, digest, emails, health, jobs, portal, system,
 )
 
 
@@ -54,6 +54,7 @@ def create_app() -> FastAPI:
     app.include_router(routes.digest.router, dependencies=logged_in)
     app.include_router(routes.audit.router, dependencies=logged_in)
     app.include_router(routes.emails.router, dependencies=logged_in)
+    app.include_router(routes.system.router, dependencies=logged_in)
 
     return app
 

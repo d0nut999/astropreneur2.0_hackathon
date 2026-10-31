@@ -11,7 +11,6 @@ from sqlmodel import Session, select
 
 from ..audit import log_audit
 from ..auth import require_role
-from ..config import settings
 from ..db import get_session
 from ..models import Draft, DraftStatus, DraftType, Email, EmailStatus, Event, EventStatus, User, UserRole
 from ..services.digest import URGENCY_ORDER
@@ -168,18 +167,3 @@ def confirm_event(event_id: int, db: Session = Depends(get_session), user: User 
 def dismiss_event(event_id: int, db: Session = Depends(get_session), user: User = Depends(human)):
     """✋ HR dismisses a suggestion."""
     return _decide_event(event_id, EventStatus.DISMISSED, db, user)
-
-
-@router.post("/emails/reset_demo")
-def reset_demo(db: Session = Depends(get_session), user: User = Depends(human)):
-    """✋ Dev only: delete all emails, events and email drafts to replay the demo."""
-    if settings.app_env != "dev":
-        raise HTTPException(403, "Only available in dev")
-    for model in (Event, Draft, Email):
-        for row in db.exec(select(model)).all():
-            if model is Draft and row.email_id is None:
-                continue
-            db.delete(row)
-    db.commit()
-    log_audit(db, actor=f"user:{user.id}", action="reset_demo", entity="email", entity_id=0)
-    return {"ok": True}

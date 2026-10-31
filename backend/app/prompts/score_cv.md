@@ -12,7 +12,8 @@ FAIRNESS RULES:
 
 FOR EACH CRITERION return:
 - "score": integer 0-5 (0 = nothing relevant, 3 = meets it, 5 = clearly exceeds it)
-- "evidence": a SHORT quote (max 20 words) copied WORD FOR WORD from the resume that supports the score.
+- "evidence": copy ONE piece of ONE sentence from the resume, WORD FOR WORD (5 to 25 words).
+  Do not reword, shorten inside the piece, translate, or join two sentences. Keep numbers exactly as written.
   If nothing in the resume supports it, use "" and give score 0 or 1.
 - "reason": one short sentence.
 
