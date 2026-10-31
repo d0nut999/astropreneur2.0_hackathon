@@ -78,6 +78,11 @@ def submit_answers(token: str, req: AnswersRequest, db: Session = Depends(get_se
     transition(db, app, ApplicationStatus.VIDEO_SUBMITTED, actor="candidate")
     log_audit(db, actor="candidate", action="submit_answers", entity="application", entity_id=app.id,
               payload={"answers": len(answers), "flags": len(flags)})
+    try:  # evaluate right away so HR sees a recommendation; never break the candidate's submission
+        from ..services.evaluator import evaluate_interview
+        evaluate_interview(db, app)
+    except Exception as e:
+        print(f"[portal] evaluation failed for application {app.id}: {e}")
     return {"success": True, "message": "Thank you! Your answers were received. The HR team will get back to you."}
 
 

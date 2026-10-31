@@ -11,10 +11,11 @@ from ..db import get_session
 import re
 
 from ..models import (
-    Application, ApplicationStatus, Candidate, Draft, DraftType, Email, Evaluation, Job, Score, User, UserRole,
-    VideoSubmission,
+    Application, ApplicationStatus, Candidate, Decision, Draft, DraftType, Email, Evaluation, Job, Score, User,
+    UserRole, VideoSubmission,
 )
 from ..schemas import DecisionRequest, ShortlistRequest
+from ..services.evaluator import evaluate_interview
 from ..services.interview import prepare_invitation, questions_for
 from ..services.scorer import score_application
 from ..state_machine import StateTransitionError, transition
@@ -46,7 +47,17 @@ def _row(db: Session, app: Application) -> dict:
         "flags": (s.criteria_json.get("flags", []) if s else []) + app.security_flags_json.get("flags", []),
         "criteria": [{"label": c["label"], "score": c["score"], "weight": c["weight"]} for c in crit],
         "created_at": app.created_at.isoformat(),
+        "recommendation": _latest_eval(db, app.id).recommendation if _latest_eval(db, app.id) else None,
+        "decision": _latest_decision(db, app.id).decision if _latest_decision(db, app.id) else None,
     }
+
+
+def _latest_eval(db: Session, app_id: int) -> Optional[Evaluation]:
+    return db.exec(select(Evaluation).where(Evaluation.application_id == app_id).order_by(Evaluation.id.desc())).first()
+
+
+def _latest_decision(db: Session, app_id: int) -> Optional[Decision]:
+    return db.exec(select(Decision).where(Decision.application_id == app_id).order_by(Decision.id.desc())).first()
 
 
 @router.get("")
@@ -75,7 +86,8 @@ def get_candidate_detail(candidate_id: int, db: Session = Depends(get_session)):
     cand = db.get(Candidate, app.candidate_id)
     job = db.get(Job, app.job_id)
     s = _latest_score(db, app.id)
-    ev = db.exec(select(Evaluation).where(Evaluation.application_id == app.id).order_by(Evaluation.id.desc())).first()
+    ev = _latest_eval(db, app.id)
+    dec = _latest_decision(db, app.id)
     email = db.exec(select(Email).where(Email.application_id == app.id)).first()
     return {
         **_row(db, app),
@@ -84,7 +96,8 @@ def get_candidate_detail(candidate_id: int, db: Session = Depends(get_session)):
         "security": app.security_flags_json,
         "anonymized_cv": app.anonymized_profile_json.get("text", ""),
         "removed_personal_info": len(app.anonymized_profile_json.get("removed", [])),
-        "evaluation": ev.model_dump() if ev else None,
+        "evaluation": ({**ev.model_dump(), "created_at": ev.created_at.isoformat()} if ev else None),
+        "final_decision": ({**dec.model_dump(), "created_at": dec.created_at.isoformat()} if dec else None),
         "email_id": email.id if email else None,
         "interview": _interview(db, app),
     }
@@ -157,17 +170,69 @@ def invite_candidate(candidate_id: int, db: Session = Depends(get_session), user
             "message": "Invitation drafted. Review and approve it in Approvals - nothing has been sent."}
 
 
-@router.post("/{candidate_id}/decision")
-def make_decision(candidate_id: int, req: DecisionRequest, db: Session = Depends(get_session),
-                  user: User = Depends(human)):
-    """✋ HUMAN ONLY: final decision (used after the interview step)."""
+@router.post("/{candidate_id}/evaluate")
+def evaluate(candidate_id: int, db: Session = Depends(get_session)):
+    """(Re)evaluate the written answers -> recommendation (never a decision)."""
     app = db.get(Application, candidate_id)
     if not app:
         raise HTTPException(404, "Application not found")
     try:
+        ev = evaluate_interview(db, app)
+    except ValueError as e:
+        raise HTTPException(400, str(e))
+    return {"recommendation": ev.recommendation, "confidence": ev.confidence, "status": app.status.value}
+
+
+OUTCOME_EMAILS = {
+    "advance": (
+        "Good news about your application - {job}",
+        "Hello {first},\n\nThank you for your answers to our written interview. We were impressed and would like "
+        "to invite you to a final interview with our team. We will contact you shortly to agree on a time.\n\n"
+        "Best regards,\nHR Team",
+    ),
+    "reject": (
+        "Your application - {job}",
+        "Hello {first},\n\nThank you for the time you spent on your application and on our written interview. "
+        "After careful review, we have decided not to move forward with your application for this position.\n\n"
+        "We wish you all the best in your search.\n\nBest regards,\nHR Team",
+    ),
+}
+
+
+@router.post("/{candidate_id}/decision")
+def make_decision(candidate_id: int, req: DecisionRequest, db: Session = Depends(get_session),
+                  user: User = Depends(human)):
+    """✋ HUMAN ONLY: final decision. If HR disagrees with the AI, a reason is required (accountability)."""
+    app = db.get(Application, candidate_id)
+    if not app:
+        raise HTTPException(404, "Application not found")
+    decision = req.decision.strip().lower()
+    if decision not in OUTCOME_EMAILS:
+        raise HTTPException(422, "Decision must be 'advance' or 'reject'.")
+    ev = _latest_eval(db, app.id)
+    ai = ev.recommendation if ev else "None"
+    disagrees = (decision == "advance" and ai == "Not recommended") or (decision == "reject" and ai == "Advance")
+    if disagrees and len(req.note.strip()) < 10:
+        raise HTTPException(422, f"The AI recommended '{ai}'. Please write a short reason (10+ characters) "
+                                 f"for your different decision. It is saved in the audit log.")
+    try:
         transition(db, app, ApplicationStatus.DECIDED, actor=f"user:{user.id}")
     except StateTransitionError as e:
         raise HTTPException(400, str(e))
-    log_audit(db, actor=f"user:{user.id}", action="decision", entity="application", entity_id=app.id,
-              payload={"decision": req.recommendation})
-    return {"id": app.id, "status": app.status.value, "decision": req.recommendation}
+
+    db.add(Decision(application_id=app.id, decision=decision, ai_recommendation=ai, agrees_with_ai=not disagrees,
+                    note=req.note.strip()[:1000], decided_by=f"user:{user.id}"))
+    cand = db.get(Candidate, app.candidate_id)
+    job = db.get(Job, app.job_id)
+    subject, body = OUTCOME_EMAILS[decision]
+    first = (cand.name or "").split(" ")[0] if cand else "there"
+    draft = Draft(application_id=app.id, to_addr=cand.email if cand else "",
+                  type=DraftType.REPLY if decision == "advance" else DraftType.REJECTION,
+                  subject=subject.format(job=job.title if job else ""), body=body.format(first=first))
+    db.add(draft)
+    db.commit()
+    db.refresh(draft)
+    log_audit(db, actor=f"user:{user.id}", action="final_decision", entity="application", entity_id=app.id,
+              payload={"decision": decision, "ai": ai, "agrees_with_ai": not disagrees, "note": req.note[:200]})
+    return {"id": app.id, "status": app.status.value, "decision": decision, "agrees_with_ai": not disagrees,
+            "draft_id": draft.id, "message": "Decision saved. The email to the candidate is waiting in Approvals."}

@@ -235,6 +235,20 @@ class Event(SQLModel, table=True):
     created_at: NaiveDatetime = Field(default_factory=datetime.now)
 
 
+class Decision(SQLModel, table=True):
+    """Final HUMAN decision about a candidate (the AI only recommends)."""
+    __tablename__ = "decisions"
+
+    id: Optional[int] = Field(default=None, primary_key=True)
+    application_id: int = Field(foreign_key="applications.id", index=True)
+    decision: str            # "advance" | "reject"
+    ai_recommendation: str   # what the AI recommended at that moment
+    agrees_with_ai: bool
+    note: str = ""           # required when HR disagrees with the AI
+    decided_by: str          # "user:<id>"
+    created_at: NaiveDatetime = Field(default_factory=datetime.now)
+
+
 class AuditLog(SQLModel, table=True):
     """Append-only audit log."""
     __tablename__ = "audit_logs"

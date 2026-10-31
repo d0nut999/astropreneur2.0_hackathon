@@ -65,7 +65,8 @@ class ShortlistRequest(BaseModel):
 
 
 class DecisionRequest(BaseModel):
-    recommendation: str  # "Advance" | "Hold" | "Not recommended"
+    decision: str        # "advance" (to the final interview) | "reject"
+    note: str = ""       # required when HR disagrees with the AI recommendation
 
 
 # ============= Approval Queue =============
@@ -228,3 +229,11 @@ class TailoredQuestion(BaseModel):
     """Output schema for the tailored interview question."""
     question: str
     rubric: str
+
+
+class AnswerEvaluation(BaseModel):
+    """Output schema for the written-interview evaluator (LLM or offline)."""
+    per_question: dict[str, CriterionScore]
+    summary: str = ""
+    injection_suspected: bool = False
+    injection_text: str = ""

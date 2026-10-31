@@ -46,6 +46,9 @@ def generate_digest(db: Session, now: datetime | None = None) -> dict:
         parts.append(f"{len(apps_ok)} new application{'s' if len(apps_ok) > 1 else ''}")
     if flagged:
         parts.append(f"{len(flagged)} suspicious email(s) blocked")
+    waiting = db.exec(select(Application).where(Application.status == ApplicationStatus.EVALUATED)).all()
+    if waiting:
+        parts.append(f"{len(waiting)} candidate{'s' if len(waiting) > 1 else ''} waiting for your final decision")
     if pending_drafts:
         parts.append(f"{len(pending_drafts)} reply draft(s) waiting for your approval")
     summary = ("Today: " + ", ".join(parts) + ".") if parts else "Inbox is clear. Nothing needs your attention."
@@ -59,6 +62,7 @@ def generate_digest(db: Session, now: datetime | None = None) -> dict:
         "summary": summary,
         # new
         "flagged_count": len(flagged),
+        "awaiting_decision_count": len(waiting),
         "total_new_emails": len(emails),
         "by_category": by_category,
         "urgent_emails": [

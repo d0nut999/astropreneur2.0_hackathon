@@ -7,6 +7,7 @@ import { Link, useParams } from 'react-router-dom'
 import { apiGet, apiPost } from '../api'
 import StatusBadge from '../components/StatusBadge'
 import ScoreBar from '../components/ScoreBar'
+import RecommendationBadge from '../components/RecommendationBadge'
 
 export default function Candidate() {
   const { id } = useParams()
@@ -16,6 +17,7 @@ export default function Candidate() {
   const [showCv, setShowCv] = useState(false)
   const [busy, setBusy] = useState('')
   const [notice, setNotice] = useState('')
+  const [note, setNote] = useState('')
 
   const load = async () => {
     try {
@@ -41,6 +43,20 @@ export default function Candidate() {
       await load()
     } catch (err) {
       setNotice(err.response?.data?.detail || 'Action failed')
+    } finally {
+      setBusy('')
+    }
+  }
+
+  const decide = async (decision) => {
+    setBusy(decision)
+    setNotice('')
+    try {
+      const res = await apiPost(`/candidates/${id}/decision`, { decision, note })
+      setNotice(res.data.message)
+      await load()
+    } catch (err) {
+      setNotice(err.response?.data?.detail || 'Could not save the decision')
     } finally {
       setBusy('')
     }
@@ -183,11 +199,92 @@ export default function Candidate() {
               )}
             </p>
           )}
-          {c.status === 'VIDEO_SUBMITTED' && <p className="text-sm text-cyan-800">Answers received ✓ — evaluation comes in the next step.</p>}
+          {c.status === 'VIDEO_SUBMITTED' && (
+            <button onClick={() => act('evaluate', `/candidates/${id}/evaluate`, 'Answers evaluated.')} disabled={!!busy}
+              className="px-4 py-2 rounded-lg bg-blue-600 text-white font-medium hover:bg-blue-700 disabled:opacity-50">
+              {busy === 'evaluate' ? 'Evaluating…' : 'Evaluate answers'}
+            </button>
+          )}
+          {c.status === 'EVALUATED' && (
+            <div className="w-full">
+              <p className="text-sm text-gray-700 mb-2">
+                The AI recommends <RecommendationBadge value={c.evaluation?.recommendation} />. The final decision is yours.
+              </p>
+              <textarea value={note} onChange={(e) => setNote(e.target.value)}
+                placeholder="Optional note (required if you disagree with the AI)"
+                className="w-full border rounded-lg p-2 text-sm h-16 mb-3" />
+              <div className="flex gap-3">
+                <button onClick={() => decide('advance')} disabled={!!busy}
+                  className="px-4 py-2 rounded-lg bg-green-600 text-white font-medium hover:bg-green-700 disabled:opacity-50">
+                  {busy === 'advance' ? 'Saving…' : '✓ Advance to final interview'}
+                </button>
+                <button onClick={() => decide('reject')} disabled={!!busy}
+                  className="px-4 py-2 rounded-lg bg-gray-700 text-white font-medium hover:bg-gray-800 disabled:opacity-50">
+                  {busy === 'reject' ? 'Saving…' : '✗ Reject'}
+                </button>
+              </div>
+            </div>
+          )}
+          {c.status === 'DECIDED' && c.final_decision && (
+            <div className="text-sm">
+              <RecommendationBadge value={c.final_decision.decision} large />
+              <span className="ml-3 text-gray-600">
+                {c.final_decision.agrees_with_ai ? 'Same as the AI recommendation' : `Different from the AI (${c.final_decision.ai_recommendation})`}
+                {' · '}{new Date(c.final_decision.created_at).toLocaleString()}
+              </span>
+              {c.final_decision.note && <p className="mt-2 text-gray-700">Note: "{c.final_decision.note}"</p>}
+              <Link to="/approvals" className="block mt-2 text-blue-600 hover:underline">The email to the candidate is in Approvals →</Link>
+            </div>
+          )}
           {quarantined && <p className="text-sm text-gray-600">Blocked CVs cannot be scored or shortlisted automatically.</p>}
-          <p className="text-xs text-gray-400 ml-auto">Only a logged-in human can shortlist. The AI cannot.</p>
+          {c.status !== 'EVALUATED' && <p className="text-xs text-gray-400 ml-auto">Only a logged-in human can shortlist or decide. The AI cannot.</p>}
         </div>
       </div>
+
+      {c.evaluation && (
+        <div className="bg-white rounded-lg shadow p-6 mb-6">
+          <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
+            <div>
+              <p className="text-xs uppercase tracking-wide text-gray-500 mb-1">AI recommendation (you decide)</p>
+              <div className="flex items-center gap-3">
+                <RecommendationBadge value={c.evaluation.recommendation} large />
+                <span className="text-sm text-gray-600">Confidence: {Math.round(c.evaluation.confidence * 100)}%</span>
+              </div>
+            </div>
+            <div className="flex gap-6 text-center">
+              <div><div className="text-2xl font-bold">{Math.round(c.evaluation.summary_json.cv_score)}</div><div className="text-xs text-gray-500">CV · 40%</div></div>
+              <div><div className="text-2xl font-bold">{Math.round(c.evaluation.summary_json.interview_score)}</div><div className="text-xs text-gray-500">Interview · 60%</div></div>
+              <div><div className="text-2xl font-bold text-blue-700">{Math.round(c.evaluation.summary_json.combined)}</div><div className="text-xs text-gray-500">Combined</div></div>
+            </div>
+          </div>
+          <p className="text-gray-800 mb-2">{c.evaluation.summary_json.summary}</p>
+          <ul className="text-sm text-gray-600 list-disc list-inside mb-2">
+            {c.evaluation.summary_json.reasons.map((r, i) => <li key={i}>{r}</li>)}
+          </ul>
+          {c.evaluation.summary_json.flags?.length > 0 && (
+            <p className="text-sm text-amber-800 bg-amber-50 rounded p-2 mb-2">⚠ Manipulation attempt in the answers: "{c.evaluation.summary_json.flags[0]}"</p>
+          )}
+          <div className="grid md:grid-cols-3 gap-3 mt-4">
+            {c.evaluation.per_question_json.questions.map((q, i) => (
+              <div key={q.question_id} className="border rounded-lg p-3">
+                <div className="flex justify-between text-sm font-medium mb-1"><span>Question {i + 1}</span><span>{q.score}/5</span></div>
+                <ScoreBar value={q.score} max={5} small />
+                {q.evidence && (
+                  <p className={`text-xs mt-2 italic ${q.verified ? 'text-blue-900' : 'text-red-700'}`}>
+                    "{q.evidence}" {q.verified ? '✓' : '✗ not in answer'}
+                  </p>
+                )}
+                <p className="text-xs text-gray-600 mt-1">{q.reason}</p>
+                {q.note && <p className="text-xs text-red-700 mt-1">{q.note}</p>}
+              </div>
+            ))}
+          </div>
+          <p className="text-[11px] text-gray-400 mt-3">
+            Evaluated by {c.evaluation.summary_json.source === 'ai' ? `AI (${c.evaluation.summary_json.model})` : 'offline rules'} ·
+            only the content of the answers is judged (not style, language or identity) · recommendation computed by code
+          </p>
+        </div>
+      )}
 
       {c.interview?.questions?.length > 0 && (
         <div className="bg-white rounded-lg shadow p-6 mb-6">

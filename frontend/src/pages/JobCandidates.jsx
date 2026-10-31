@@ -7,6 +7,7 @@ import { Link, useParams } from 'react-router-dom'
 import { apiGet, apiPost } from '../api'
 import StatusBadge from '../components/StatusBadge'
 import ScoreBar from '../components/ScoreBar'
+import RecommendationBadge from '../components/RecommendationBadge'
 
 export default function JobCandidates() {
   const { id } = useParams()
@@ -112,7 +113,11 @@ export default function JobCandidates() {
                     ))}
                   </div>
                 </td>
-                <td className="px-4 py-4"><StatusBadge status={r.status} /></td>
+                <td className="px-4 py-4 space-y-1">
+                  <StatusBadge status={r.status} />
+                  {r.recommendation && !r.decision && <div className="text-xs text-gray-500">AI: <RecommendationBadge value={r.recommendation} /></div>}
+                  {r.decision && <div><RecommendationBadge value={r.decision} /></div>}
+                </td>
               </tr>
             ))}
           </tbody>

@@ -75,6 +75,8 @@ def score_offline(text: str, rubric: list[dict]) -> CVScoring:
             # prefer a real sentence over a section title like "PROJECTS"
             matching = [l for l in lines if any(h in l.lower() for h in hits)]
             good = [l for l in matching if len(l) > 15 and not l.isupper()]
+            # the line that mentions the most keywords is the best proof
+            good.sort(key=lambda l: -sum(h in l.lower() for h in hits))
             evidence = (good or matching or [""])[0][:150]
         reason = f"Mentions: {', '.join(hits[:4])}" if hits else "Nothing found for this criterion"
         criteria[c["key"]] = CriterionScore(score=score, evidence=evidence, reason=reason)

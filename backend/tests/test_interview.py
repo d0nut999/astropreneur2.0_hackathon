@@ -50,7 +50,7 @@ def test_full_invitation_flow():
     answers = {str(q["id"]): "A concrete answer." for q in session["questions"]}
     assert c.post(f"/portal/{token}/answers", json={"answers": answers}).status_code == 200
     assert c.get(f"/portal/{token}").status_code == 410  # one-time link
-    assert c.get(f"/candidates/{app_id}").json()["status"] == "VIDEO_SUBMITTED"
+    assert c.get(f"/candidates/{app_id}").json()["status"] == "EVALUATED"  # answers evaluated right away
 
 
 def test_raw_token_is_never_stored_and_expired_links_fail():
