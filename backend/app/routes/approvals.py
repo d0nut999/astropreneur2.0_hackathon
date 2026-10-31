@@ -61,16 +61,10 @@ def edit_draft(draft_id: int, req: DraftEdit, db: Session = Depends(get_session)
     return d.model_dump()
 
 
-@router.post("/{draft_id}/approve")
-def approve_draft(draft_id: int, db: Session = Depends(get_session), user: User = Depends(human)):
-    """✋ HR approves -> the email is sent now (and only now)."""
-    d = db.get(Draft, draft_id)
-    if not d or d.status != DraftStatus.PENDING:
-        raise HTTPException(404, "Pending draft not found")
+def _approve(d: Draft, db: Session, user: User) -> dict:
     to = _recipient(d, db)
     if not to:
         raise HTTPException(400, "No recipient for this draft")
-
     d.status = DraftStatus.APPROVED
     d.approved_by = user.id
     db.add(d)
@@ -90,6 +84,39 @@ def approve_draft(draft_id: int, db: Session = Depends(get_session), user: User 
                 transition(db, app, ApplicationStatus.INVITED, actor=f"user:{user.id}")
     message = "Sent" if how == "smtp" else "Mail server not running: email saved in backend/data/outbox"
     return {"id": d.id, "status": d.status, "sent": sent, "via": how, "to": to, "message": message}
+
+
+@router.post("/{draft_id}/approve")
+def approve_draft(draft_id: int, db: Session = Depends(get_session), user: User = Depends(human)):
+    """✋ HR approves -> the email is sent now (and only now)."""
+    d = db.get(Draft, draft_id)
+    if not d or d.status != DraftStatus.PENDING:
+        raise HTTPException(404, "Pending draft not found")
+    return _approve(d, db, user)
+
+
+class BulkApprove(BaseModel):
+    ids: list[int]
+
+
+@router.post("/bulk_approve")
+def bulk_approve(req: BulkApprove, db: Session = Depends(get_session), user: User = Depends(human)):
+    """✋ Approve and send the drafts HR selected (each one is listed and readable before; each one is audited)."""
+    if not req.ids or len(req.ids) > 50:
+        raise HTTPException(422, "Select between 1 and 50 drafts.")
+    results = []
+    for draft_id in dict.fromkeys(req.ids):
+        d = db.get(Draft, draft_id)
+        if not d or d.status != DraftStatus.PENDING:
+            results.append({"id": draft_id, "ok": False, "message": "not pending"})
+            continue
+        try:
+            r = _approve(d, db, user)
+            results.append({"id": draft_id, "ok": r["sent"], "to": r["to"]})
+        except HTTPException as e:
+            results.append({"id": draft_id, "ok": False, "message": e.detail})
+    sent = sum(r["ok"] for r in results)
+    return {"sent": sent, "results": results, "message": f"{sent} email(s) sent."}
 
 
 @router.post("/{draft_id}/reject")

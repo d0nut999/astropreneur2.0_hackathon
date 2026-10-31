@@ -7,7 +7,7 @@ import { AuthProvider, RequireAuth } from './auth'
 import Login from './pages/Login'
 import Dashboard from './pages/Dashboard'
 import Inbox from './pages/Inbox'
-import Agenda from './pages/Agenda'
+import Calendar from './pages/Calendar'
 import Jobs from './pages/Jobs'
 import JobCandidates from './pages/JobCandidates'
 import Candidate from './pages/Candidate'
@@ -31,7 +31,8 @@ export default function App() {
           <Route path="/" element={<Dashboard />} />
           <Route path="/dashboard" element={<Dashboard />} />
           <Route path="/inbox" element={<Inbox />} />
-          <Route path="/agenda" element={<Agenda />} />
+          <Route path="/agenda" element={<Calendar />} />
+          <Route path="/calendar" element={<Calendar />} />
           <Route path="/jobs" element={<Jobs />} />
           <Route path="/jobs/:id" element={<JobCandidates />} />
           <Route path="/candidates/:id" element={<Candidate />} />

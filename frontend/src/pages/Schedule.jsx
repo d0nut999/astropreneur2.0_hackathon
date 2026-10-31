@@ -32,11 +32,18 @@ export default function Schedule() {
     setBusy(true)
     setError('')
     try {
-      const r = await apiPost(`/schedule/${token}/book`, { slot_id: choice })
+      const r = await apiPost(`/schedule/${token}/book`, { start: choice })
       setDone(r.data.message)
       await load()
     } catch (e) {
-      setError(e.response?.data?.detail || 'Could not book this time.')
+      const d = e.response?.data?.detail
+      if (e.response?.status === 409 && d?.alternatives) {
+        setError(`${d.message} Here are the closest free times.`)
+        setOffer({ ...offer, times: d.alternatives })
+        setChoice(null)
+      } else {
+        setError(typeof d === 'string' ? d : 'Could not book this time.')
+      }
     } finally {
       setBusy(false)
     }
@@ -68,7 +75,7 @@ export default function Schedule() {
   if (!offer && !error) return shell(<p className="text-center text-gray-500">Loading…</p>)
   if (!offer) return shell(<div className="bg-white rounded-lg shadow p-10 text-center"><p className="text-4xl mb-3">🔒</p><p>{error}</p></div>)
 
-  const booked = offer.slots.find((s) => s.status === 'booked')
+  const booked = offer.booked
   if (offer.status === 'booked' && booked) {
     return shell(
       <div className="bg-white rounded-lg shadow p-10 text-center">
@@ -97,8 +104,8 @@ export default function Schedule() {
       <h1 className="text-2xl font-bold mb-1">Congratulations {offer.first_name} 🎉</h1>
       <p className="text-gray-600 mb-1">Final interview for <b>{offer.job_title}</b></p>
       <p className="text-sm text-gray-500 mb-6">
-        {offer.duration_minutes} minutes · {offer.location}. These times are reserved for you until{' '}
-        {new Date(offer.expires_at).toLocaleString(undefined, { weekday: 'long', hour: '2-digit', minute: '2-digit' })}.
+        {offer.duration_minutes} minutes · {offer.location}. These are the times free right now —
+        first come, first served, so we recommend booking soon.
       </p>
 
       {error && <div className="mb-4 rounded bg-red-50 border border-red-200 px-4 py-2 text-sm text-red-800">{error}</div>}
@@ -106,10 +113,13 @@ export default function Schedule() {
       {!declining && (
         <>
           <div className="space-y-3 mb-6">
-            {offer.slots.map((s) => (
-              <label key={s.id} className={`flex items-center gap-3 border rounded-lg p-4 cursor-pointer ${choice === s.id ? 'border-blue-500 bg-blue-50' : 'hover:bg-gray-50'}`}>
-                <input type="radio" name="slot" checked={choice === s.id} onChange={() => setChoice(s.id)} />
-                <span className="font-medium">{fmt(s.start)}</span>
+            {offer.times.length === 0 && (
+              <p className="text-gray-600 bg-gray-50 rounded p-4">No free times at the moment. Please tell us when you are available below.</p>
+            )}
+            {offer.times.map((t) => (
+              <label key={t} className={`flex items-center gap-3 border rounded-lg p-4 cursor-pointer ${choice === t ? 'border-blue-500 bg-blue-50' : 'hover:bg-gray-50'}`}>
+                <input type="radio" name="slot" checked={choice === t} onChange={() => setChoice(t)} />
+                <span className="font-medium">{fmt(t)}</span>
               </label>
             ))}
           </div>
@@ -117,7 +127,7 @@ export default function Schedule() {
             className="w-full bg-blue-600 text-white py-3 rounded-lg font-semibold hover:bg-blue-700 disabled:opacity-40">
             {busy ? 'Booking…' : 'Confirm this time'}
           </button>
-          <button onClick={() => setDeclining(true)} className="w-full mt-3 text-sm text-gray-600 hover:underline">
+          <button onClick={() => { setDeclining(true); setError('') }} className="w-full mt-3 text-sm text-gray-600 hover:underline">
             None of these work for me
           </button>
         </>

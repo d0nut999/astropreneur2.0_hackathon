@@ -66,6 +66,8 @@ def generate_digest(db: Session, now: datetime | None = None) -> dict:
         parts.append(f"{len(interviews_soon)} interview(s) today/tomorrow (next: {nxt.start:%a %H:%M})")
     if need_new_slots:
         parts.append(f"{len(need_new_slots)} candidate(s) need new interview times")
+    from .scheduler import capacity
+    spots = capacity(db)
     if pending_drafts:
         parts.append(f"{len(pending_drafts)} reply draft(s) waiting for your approval")
     summary = ("Today: " + ", ".join(parts) + ".") if parts else "Inbox is clear. Nothing needs your attention."
@@ -89,6 +91,7 @@ def generate_digest(db: Session, now: datetime | None = None) -> dict:
             for e in urgent[:6]
         ],
         "need_new_slots_count": len(need_new_slots),
+        "interview_spots_7_days": spots,
         "upcoming_events": [
             {"id": f"interview-{sl.id}", "email_id": None, "application_id": sl.application_id, "type": "interview",
              "title": f"Final interview - Candidate #{sl.application_id:03d}", "date": sl.start.strftime("%Y-%m-%d"),

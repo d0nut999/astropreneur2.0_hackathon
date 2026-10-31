@@ -8,7 +8,7 @@ from sqlmodel import Session
 
 from ..config import settings
 from ..db import get_session
-from ..models import Application, Candidate, InterviewSlot, Job, OfferStatus
+from ..models import Application, Candidate, Job, OfferStatus
 from ..services import scheduler
 from ..services.security_gate import scan_text_for_injection
 
@@ -16,7 +16,7 @@ router = APIRouter(prefix="/schedule", tags=["schedule"])
 
 
 class BookRequest(BaseModel):
-    slot_id: int
+    start: str  # ISO time chosen from the live list
 
 
 class DeclineRequest(BaseModel):
@@ -41,16 +41,17 @@ def get_offer(token: str, db: Session = Depends(get_session)):
     app = db.get(Application, offer.application_id)
     cand = db.get(Candidate, app.candidate_id)
     job = db.get(Job, app.job_id)
-    slots = scheduler.offer_slots(db, offer)
+    slot = scheduler.booked_slot(db, app.id)
+    live = scheduler.times_for_offer(db, offer) if offer.status == OfferStatus.PENDING and not slot else []
     return {
         "first_name": (cand.name or "").split(" ")[0] if cand else "",
         "job_title": job.title if job else "",
-        "status": offer.status.value,
+        "status": "booked" if slot else offer.status.value,
         "location": settings.interview_location,
         "duration_minutes": settings.interview_minutes,
         "expires_at": offer.expires_at.isoformat(),
-        "slots": [{"id": s.id, "start": s.start.isoformat(), "end": s.end.isoformat(), "status": s.status.value}
-                  for s in slots],
+        "times": [t.isoformat() for t in live],          # live: first come, first served
+        "booked": {"start": slot.start.isoformat(), "end": slot.end.isoformat()} if slot else None,
     }
 
 
@@ -58,9 +59,13 @@ def get_offer(token: str, db: Session = Depends(get_session)):
 def book_slot(token: str, req: BookRequest, db: Session = Depends(get_session)):
     offer = _offer(db, token)
     try:
-        slot = scheduler.book(db, offer, req.slot_id)
-    except ValueError as e:
-        raise HTTPException(409, str(e))
+        start = datetime.fromisoformat(req.start)
+    except ValueError:
+        raise HTTPException(422, "Invalid time.")
+    try:
+        slot = scheduler.book_time(db, offer.application_id, start, actor="candidate", offer=offer)
+    except scheduler.SlotTaken as e:
+        raise HTTPException(409, {"message": str(e), "alternatives": [t.isoformat() for t in e.alternatives]})
     return {"ok": True, "start": slot.start.isoformat(), "message": "Your interview is booked. See you soon!"}
 
 
@@ -81,7 +86,7 @@ def decline_slots(token: str, req: DeclineRequest, db: Session = Depends(get_ses
 @router.get("/{token}/ics")
 def candidate_ics(token: str, db: Session = Depends(get_session)):
     offer = _offer(db, token, allow_done=True)
-    slot = next((s for s in scheduler.offer_slots(db, offer) if s.status.value == "booked"), None)
+    slot = scheduler.booked_slot(db, offer.application_id)
     if not slot:
         raise HTTPException(404, "No booked interview yet.")
     job = db.get(Job, db.get(Application, offer.application_id).job_id)

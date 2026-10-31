@@ -7,7 +7,7 @@ import { useAuth } from '../auth'
 const LINKS = [
   { to: '/dashboard', label: 'Today' },
   { to: '/inbox', label: 'Inbox' },
-  { to: '/agenda', label: 'Agenda' },
+  { to: '/agenda', label: 'Calendar' },
   { to: '/jobs', label: 'Jobs' },
   { to: '/approvals', label: 'Approvals' },
   { to: '/audit', label: 'Audit' },

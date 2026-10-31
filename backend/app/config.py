@@ -32,14 +32,20 @@ class Settings(BaseSettings):
     imap_password: str = ""
     hr_mailbox: str = "hr@fictional-company.test"
 
-    # Interview scheduling (HR working hours, local time)
+    # Interview scheduling (local time)
     work_day_start: int = 9
     work_day_end: int = 17
     lunch_start: int = 12
     lunch_end: int = 13
-    interview_minutes: int = 60
-    slot_hold_hours: int = 48
     work_days: str = "0,1,2,3,4"   # Monday=0 ... Sunday=6
+    interview_minutes: int = 60
+    # Interview blocks: interviews only happen here. Format "weekday:start-end", weekday Monday=0.
+    # Default: Tuesday 14-17, Wednesday 10-12, Thursday 14-17
+    interview_blocks: str = "1:14-17,2:10-12,3:14-17"
+    max_interviews_per_day: int = 3
+    min_notice_hours: int = 12      # never offer a time less than 12h from now
+    offer_link_days: int = 7        # how long a scheduling link stays valid
+    times_shown_to_candidate: int = 6
     interview_location: str = "Fictional Company HQ, Room B (or a video link sent by HR)"
 
     # Login sessions

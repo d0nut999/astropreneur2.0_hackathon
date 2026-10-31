@@ -6,6 +6,7 @@ AI actions here only READ and RECORD. Anything that affects the outside world
 from datetime import datetime
 from typing import Optional
 
+from pydantic import BaseModel
 from fastapi import APIRouter, Depends, HTTPException
 from sqlmodel import Session, select
 
@@ -66,6 +67,28 @@ def sync_inbox(db: Session = Depends(get_session)):
     except Exception as e:
         raise HTTPException(503, f"Could not reach the mailbox: {e}. Is Mailpit running? Try 'Load demo emails' instead.")
     return {"source": source, **_import(db, raws)}
+
+
+class SimulatedEmail(BaseModel):
+    from_name: str = ""
+    from_addr: str
+    subject: str
+    body: str
+
+
+@router.post("/emails/simulate")
+def simulate_email(req: SimulatedEmail, db: Session = Depends(get_session), user: User = Depends(human)):
+    """✋ Dev only: pretend an email just arrived (to test or demo without a mail server)."""
+    if settings.app_env != "dev":
+        raise HTTPException(403, "Only available in dev")
+    import uuid
+    row = process_incoming(db, {
+        "message_id": f"sim-{uuid.uuid4().hex}", "from_name": req.from_name.strip()[:100],
+        "from_addr": req.from_addr.strip().lower()[:200], "to_addr": settings.hr_mailbox,
+        "subject": req.subject.strip()[:300], "body": req.body[:6000],
+        "received_at": datetime.now(), "attachments": [],
+    })
+    return _email_out(row)
 
 
 @router.get("/emails")

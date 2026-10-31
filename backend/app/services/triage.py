@@ -47,7 +47,9 @@ def process_incoming(db: Session, raw: dict, now: datetime | None = None) -> Ema
     )
 
     # A new meeting request that clashes with an interview must be seen quickly
-    if analysis.meeting and analysis.meeting.date and analysis.meeting.time and urgency != "flagged":
+    from .scheduler import scheduling_application as _sched_app
+    if analysis.meeting and analysis.meeting.date and analysis.meeting.time and urgency != "flagged" \
+            and not _sched_app(db, raw["from_addr"]):
         from .scheduler import interview_conflict
         try:
             start = datetime.strptime(f"{analysis.meeting.date} {analysis.meeting.time}", "%Y-%m-%d %H:%M")
@@ -83,7 +85,10 @@ def process_incoming(db: Session, raw: dict, now: datetime | None = None) -> Ema
     db.refresh(email_row)
 
     # 4. Meetings & deadlines -> suggested events (HR confirms or dismisses)
-    if analysis.meeting and analysis.meeting.date and urgency != "flagged":
+    #    (not for a candidate proposing their interview time: that is handled in 4b)
+    from .scheduler import scheduling_application
+    sched_app = scheduling_application(db, raw["from_addr"])
+    if analysis.meeting and analysis.meeting.date and urgency != "flagged" and not sched_app:
         m = analysis.meeting
         db.add(Event(email_id=email_row.id, type=EventType.MEETING, title=m.title or raw["subject"],
                      date=m.date, time=m.time, location=m.location, attendees_json=m.with_people))
@@ -91,6 +96,11 @@ def process_incoming(db: Session, raw: dict, now: datetime | None = None) -> Ema
         db.add(Event(email_id=email_row.id, type=EventType.DEADLINE,
                      title=analysis.deadline_what or raw["subject"], date=analysis.deadline))
     db.commit()
+
+    # 4b. A candidate who is being scheduled writes about a time -> link it to their interview booking
+    if urgency != "flagged":
+        from .scheduler import link_time_request
+        link_time_request(db, email_row, analysis)
 
     # 5. Job applications with a CV -> create a candidate application (screened or quarantined)
     if analysis.category == "candidate_application":

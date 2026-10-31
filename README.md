@@ -33,10 +33,12 @@ Built for the **Secure AI HR System** hackathon (Astropreneur 2.0). All people, 
 | **Daily brief** | "Today: 4 urgent emails, 1 meeting at 16:00, 3 new applications, 4 suspicious emails blocked, 1 candidate waiting for your decision." |
 | **Agenda** | Meetings and deadlines found in emails, suggested until HR confirms or dismisses them. |
 | **CV screening & ranking** | Applications arriving by email are checked, anonymized and scored per job criterion. Every score shows **a quote from the CV as proof**. Ranked list with **blind mode** (names hidden). |
+| **Bulk shortlist** | HR ticks several candidates in the ranking (or *Select all ≥ 70*), then one click shortlists them and prepares **one personal invitation each** (2 common questions + 1 tailored to that CV). In Approvals, HR reads them, unticks any to keep back, and clicks *Approve & send selected*. Every shortlist and every email is still recorded individually in the audit log. |
 | **Written interview** | For a shortlisted candidate the AI prepares 3 questions (2 identical for everyone + 1 tailored to their weakest skill) and an invitation with a personal, one-time link. |
 | **Evaluation & recommendation** | Answers are scored with evidence; HireGuard recommends **Advance / Hold / Not recommended** with a confidence level. |
 | **Human decision** | HR advances or rejects. Every rejection — and advancing someone the AI did not recommend — requires a written reason, saved in the audit log. |
-| **Interview scheduling** | When HR advances a candidate, 3 free times are taken from HR's calendar (working hours, minus lunch, meetings and other interviews) and **held for 48 h**. The candidate picks one on a one-time link (→ booked, calendar file `.ics`), or says none work and gives their availability → HR proposes 3 new times matching it. Meetings that clash with an interview are flagged urgent and need an explicit "confirm anyway". |
+| **Interview scheduling** | HR sets **interview blocks** (default Tue 14–17, Wed 10–12, Thu 14–17, max 3/day). An advanced candidate gets a link showing the times free **right now** — nothing is reserved in advance, so the calendar never fills with holds. **First come, first served**, with atomic booking: if two candidates pick the same time, only one gets it and the other is offered the closest free times. Candidates can also **reply by email** ("would Tuesday at 14:00 work?"): the email is linked to their interview, HireGuard checks the time and HR clicks *Book it* or *Propose alternatives*. Meetings that clash with an interview are flagged urgent and need "confirm anyway". |
+| **Calendar** | Week view: interviews, meetings found in emails (confirmed / to confirm), deadlines, interview blocks, lunch, free interview spots, clashes, a now-line; click anything for details and actions. List view too. |
 | **Approval queue** | Every outgoing email (replies, invitations, outcomes) is a draft that HR can edit, approve or reject. |
 | **Audit log** | Append-only record of every AI output and human action. |
 
@@ -49,7 +51,7 @@ Built for the **Secure AI HR System** hackathon (Astropreneur 2.0). All people, 
 | Requirement | How HireGuard proves it |
 |---|---|
 | **Intelligent** | Ranked shortlist with per-criterion justification and CV quotes; urgency with reasons; tailored interview question; recommendation with evidence and confidence. |
-| **Reliable** | Every AI output is validated against a schema (retries + fallback model). If the AI is down, **offline rules** take over so the app never stops. Evidence quotes are checked against the source. Totals and recommendations are computed by code. 54 automated tests. |
+| **Reliable** | Every AI output is validated against a schema (retries + fallback model). If the AI is down, **offline rules** take over so the app never stops. Evidence quotes are checked against the source. Totals and recommendations are computed by code. 62 automated tests. |
 | **Human in the loop** | Shortlisting, invitations, final decisions, sending any email and confirming meetings are **human-only**, enforced in the backend state machine (the AI is rejected with `StateTransitionError`), not just hidden in the UI. |
 | **Security** | AI security (prompt-injection detection in emails, CVs and answers; hidden-text detection; tool-less AI), system security (file checks, random filenames, secrets in `.env`), web security (sessions, CSRF, brute-force lockout, CSP, plain-text rendering). See [§6](#6-security). |
 
@@ -65,7 +67,7 @@ Log in at **http://localhost:5173** with `recruiter@fictional-company.test` / `r
 4. **Shortlist** → **Prepare interview invitation** → **Approvals**: read, edit, *Approve & send*.
 5. Back on the candidate: *Open the candidate's link (demo)* → answer the 3 questions as the candidate → send. Opening the link again: *already used*.
 6. The candidate page now shows the **recommendation** (e.g. *Advance, 87% confidence*: CV 92 × 40% + interview 67 × 60%). Click **Reject** → refused until you write a reason (every rejection must be explainable). Click **Advance** → the outcome email waits in Approvals.
-7. **Advance** → 3 interview times are reserved (they skip existing meetings) → approve the email → open the candidate's scheduling link → book one, or click *None of these work* and type "Thursday afternoon" → *Propose 3 new times* follows it. The interview appears in the **Agenda** with a calendar file.
+7. **Advance** → approve the scheduling email → open the candidate's link: live free times inside the interview blocks → book one. Or use *Simulate an email reply* on the candidate page ("would Tuesday at 14:00 work?") → *Book it*. The **Calendar** shows the interview; simulate the Director asking for a meeting at the same time in the Inbox → it is flagged as a clash.
 8. **Audit**: every step, who did it (AI, system, candidate or `user:2`), when.
 
 Optional "live" email: run Mailpit (§8) and `python scripts/send_demo_emails.py 01 07`, then *Sync inbox*.
@@ -192,7 +194,7 @@ Alternative: `docker-compose up` (backend, frontend, Mailpit), then `docker exec
 
 ```bash
 cd backend
-python -m pytest -q        # 54 tests
+python -m pytest -q        # 62 tests
 ```
 
 | File | Proves |
@@ -204,7 +206,8 @@ python -m pytest -q        # 54 tests
 | `test_interview.py` | link locked until approval, one-time, expires, rubric never shown, token never stored |
 | `test_evaluation.py` | recommendation rules; manipulative answer → 0 and Hold; every rejection needs a reason; lower confidence near the decision line |
 | `test_auth.py` | login required, CSRF, HttpOnly cookie, logout, brute-force lockout, portal stays public |
-| `test_scheduling.py` | slots avoid meetings, weekends and lunch; booking releases the other slots; refusal → new slots follow availability; unanswered offers expire; a meeting on an interview time is flagged and needs "confirm anyway" |
+| `test_scheduling.py` | times only inside interview blocks; nothing reserved until booked; first come first served; **5 simultaneous bookings of one time → exactly 1 succeeds**; max per day; two candidates emailing for the same time; refusal → preferred times first; clashes flagged; calendar week |
+| `test_bulk.py` | bulk actions need login; quarantined CVs are refused; one personal email per candidate; only the selected drafts are sent |
 | `test_system.py` | demo reset requires login and keeps the audit log |
 
 ---
@@ -241,10 +244,12 @@ GET  /events · POST /events/{id}/confirm|dismiss                        ✋
 GET  /jobs · GET /jobs/{id} · POST /jobs/{id}/score_all
 GET  /candidates?job_id= · GET /candidates/{id}
 POST /candidates/{id}/shortlist|invite|decision                         ✋
+POST /candidates/bulk/shortlist_and_invite · POST /approvals/bulk_approve   ✋
 GET  /approvals · PUT /approvals/{id} · POST /approvals/{id}/approve|reject   ✋
 GET  /portal/{token} · POST /portal/{token}/answers                     (public, one-time token)
-GET  /schedule/{token} · POST /schedule/{token}/book|decline · GET /schedule/{token}/ics   (public, one-time)
-POST /candidates/{id}/schedule/new ✋ · GET /candidates/{id}/interview.ics
+GET  /schedule/{token} · POST /schedule/{token}/book|decline · GET /schedule/{token}/ics   (public)
+POST /candidates/{id}/schedule/new ✋ · POST /candidates/{id}/schedule/requests/{rid}/book|propose ✋
+GET  /candidates/{id}/interview.ics · GET /calendar?day= · POST /emails/simulate (dev)
 GET  /digest/today · GET /audit · GET /system/status · POST /system/test_ai|reset_demo
 ```
 

@@ -291,6 +291,19 @@ class InterviewSlot(SQLModel, table=True):
     status: SlotStatus = SlotStatus.HELD
 
 
+class TimeRequest(SQLModel, table=True):
+    """A candidate wrote an email proposing an interview time. HR books it or proposes alternatives."""
+    __tablename__ = "time_requests"
+
+    id: Optional[int] = Field(default=None, primary_key=True)
+    application_id: int = Field(foreign_key="applications.id", index=True)
+    email_id: int = Field(foreign_key="emails.id")
+    requested_start: Optional[NaiveDatetime] = None   # None if only a day / period was given
+    text: str = ""
+    status: str = "open"   # open | booked | answered | dismissed
+    created_at: NaiveDatetime = Field(default_factory=datetime.now)
+
+
 class UserSession(SQLModel, table=True):
     """Server-side login session. The browser only holds a random token (HttpOnly cookie);
     we store its SHA-256 hash, so a database leak does not leak usable sessions."""

@@ -17,6 +17,7 @@ export default function JobCandidates() {
   const [loading, setLoading] = useState(true)
   const [busy, setBusy] = useState(false)
   const [notice, setNotice] = useState('')
+  const [selected, setSelected] = useState([])
 
   const load = async () => {
     try {
@@ -40,6 +41,24 @@ export default function JobCandidates() {
       const res = await apiPost(`/jobs/${id}/score_all`)
       setNotice(`${res.data.scored} candidate(s) scored.`)
       await load()
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  const eligible = (r) => r.status === 'SCORED' || (r.status === 'SHORTLISTED' && !r.has_invite)
+  const toggle = (id) => setSelected(selected.includes(id) ? selected.filter((x) => x !== id) : [...selected, id])
+
+  const bulkInvite = async () => {
+    setBusy(true)
+    try {
+      const res = await apiPost('/candidates/bulk/shortlist_and_invite', { ids: selected })
+      const failed = res.data.results.filter((r) => !r.ok)
+      setNotice(res.data.message + (failed.length ? ` Skipped: ${failed.map((f) => `${f.label} (${f.message})`).join(', ')}.` : ''))
+      setSelected([])
+      await load()
+    } catch (err) {
+      setNotice(err.response?.data?.detail || 'Bulk action failed')
     } finally {
       setBusy(false)
     }
@@ -73,12 +92,33 @@ export default function JobCandidates() {
         </div>
       </div>
 
-      {notice && <div className="mb-4 rounded-lg bg-blue-50 border border-blue-200 px-4 py-2 text-sm text-blue-900">{notice}</div>}
+      {notice && (
+        <div className="mb-4 rounded-lg bg-blue-50 border border-blue-200 px-4 py-2 text-sm text-blue-900">
+          {notice} {notice.includes('Approvals') && <Link to="/approvals" className="underline font-medium">Review them →</Link>}
+        </div>
+      )}
+
+      {ranked.some(eligible) && (
+        <div className="sticky top-0 z-10 mb-3 bg-white rounded-lg shadow px-4 py-3 flex flex-wrap items-center gap-3 text-sm">
+          <span className="font-medium">{selected.length} selected</span>
+          <button onClick={() => setSelected(ranked.filter((r) => eligible(r) && (r.total ?? 0) >= 70).map((r) => r.id))}
+            className="px-3 py-1.5 rounded border hover:bg-gray-50">Select all ≥ 70</button>
+          <button onClick={() => setSelected([])} className="px-3 py-1.5 rounded border hover:bg-gray-50">Clear</button>
+          <button onClick={bulkInvite} disabled={!selected.length || busy}
+            className="ml-auto px-4 py-2 rounded-lg bg-green-600 text-white font-medium hover:bg-green-700 disabled:opacity-40">
+            {busy ? 'Preparing personal invitations…' : `✓ Shortlist & prepare invitations (${selected.length})`}
+          </button>
+          <span className="w-full text-xs text-gray-500">
+            Each candidate gets their own email: 2 common questions + 1 tailored to their CV. Nothing is sent until you approve in Approvals.
+          </span>
+        </div>
+      )}
 
       <div className="bg-white rounded-lg shadow overflow-hidden mb-8">
         <table className="w-full text-sm">
           <thead className="bg-gray-50 text-gray-500 text-xs uppercase">
             <tr>
+              <th className="px-3 py-3 w-8"></th>
               <th className="px-4 py-3 text-left w-12">#</th>
               <th className="px-4 py-3 text-left">Candidate</th>
               <th className="px-4 py-3 text-left w-56">Score</th>
@@ -88,7 +128,10 @@ export default function JobCandidates() {
           </thead>
           <tbody className="divide-y">
             {ranked.map((r) => (
-              <tr key={r.id} className="hover:bg-gray-50">
+              <tr key={r.id} className={`hover:bg-gray-50 ${selected.includes(r.id) ? 'bg-green-50' : ''}`}>
+                <td className="px-3 py-4">
+                  {eligible(r) && <input type="checkbox" checked={selected.includes(r.id)} onChange={() => toggle(r.id)} className="h-4 w-4" />}
+                </td>
                 <td className="px-4 py-4 font-bold text-lg text-gray-400">{r.rank ?? '–'}</td>
                 <td className="px-4 py-4">
                   <Link to={`/candidates/${r.id}`} className="font-semibold text-blue-700 hover:underline">

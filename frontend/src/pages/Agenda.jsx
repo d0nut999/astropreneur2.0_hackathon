@@ -15,7 +15,7 @@ const STATUS_STYLE = {
   dismissed: 'bg-gray-100 text-gray-500 ring-gray-200',
 }
 
-export default function Agenda() {
+export default function Agenda({ embedded = false }) {
   const [events, setEvents] = useState([])
   const [loading, setLoading] = useState(true)
   const [showDismissed, setShowDismissed] = useState(false)
@@ -61,6 +61,7 @@ export default function Agenda() {
 
   return (
     <div>
+      {!embedded && (
       <div className="flex items-center justify-between mb-6">
         <div>
           <h1 className="text-3xl font-bold">Agenda</h1>
@@ -71,6 +72,13 @@ export default function Agenda() {
           Show dismissed
         </label>
       </div>
+      )}
+      {embedded && (
+        <label className="text-sm text-gray-600 flex items-center gap-2 mb-4">
+          <input type="checkbox" checked={showDismissed} onChange={(e) => setShowDismissed(e.target.checked)} />
+          Show dismissed
+        </label>
+      )}
 
       {error && <div className="mb-4 rounded bg-red-50 border border-red-200 px-4 py-2 text-sm text-red-800">{error}</div>}
 

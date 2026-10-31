@@ -26,6 +26,8 @@ export default function Inbox() {
   const [loading, setLoading] = useState(true)
   const [busy, setBusy] = useState('')
   const [notice, setNotice] = useState('')
+  const [showSim, setShowSim] = useState(false)
+  const [sim, setSim] = useState({ from_name: 'Leila Haddad (Director)', from_addr: 'director@fictional-company.test', subject: 'Meeting request', body: 'Hi, can we meet on Tuesday at 14:00 to discuss the hiring budget?' })
 
   const load = async () => {
     const f = FILTERS.find((x) => x.key === filter)
@@ -81,6 +83,15 @@ export default function Inbox() {
       await load()
     })
 
+  const simulate = () =>
+    run('sim', async () => {
+      const res = await apiPost('/emails/simulate', sim)
+      setShowSim(false)
+      setNotice(`Email received and analyzed: ${res.data.urgency} — ${res.data.urgency_reasons?.[0] || ''}`)
+      await load()
+      select(res.data.id)
+    })
+
   const draftReply = () =>
     run('draft', async () => {
       await apiPost(`/emails/${selectedId}/draft_reply`)
@@ -105,6 +116,10 @@ export default function Inbox() {
           <p className="text-gray-500 text-sm">Sorted by the AI, urgency decided by clear rules. You decide what happens.</p>
         </div>
         <div className="flex gap-2">
+          <button onClick={() => setShowSim(!showSim)}
+            className="px-4 py-2 rounded-lg border border-dashed border-gray-400 bg-white hover:bg-gray-50 text-sm">
+            ✉ Simulate an incoming email
+          </button>
           <button onClick={sync} disabled={!!busy}
             className="px-4 py-2 rounded-lg border border-gray-300 bg-white hover:bg-gray-50 text-sm font-medium disabled:opacity-50">
             {busy === 'sync' ? 'Syncing…' : 'Sync inbox'}
@@ -115,6 +130,21 @@ export default function Inbox() {
           </button>
         </div>
       </div>
+
+      {showSim && (
+        <div className="mb-4 bg-white rounded-lg shadow p-4 grid grid-cols-1 md:grid-cols-2 gap-3">
+          <input className="border rounded p-2 text-sm" placeholder="Sender name" value={sim.from_name} onChange={(e) => setSim({ ...sim, from_name: e.target.value })} />
+          <input className="border rounded p-2 text-sm" placeholder="Sender email" value={sim.from_addr} onChange={(e) => setSim({ ...sim, from_addr: e.target.value })} />
+          <input className="border rounded p-2 text-sm md:col-span-2" placeholder="Subject" value={sim.subject} onChange={(e) => setSim({ ...sim, subject: e.target.value })} />
+          <textarea className="border rounded p-2 text-sm md:col-span-2 h-24" value={sim.body} onChange={(e) => setSim({ ...sim, body: e.target.value })} />
+          <div className="md:col-span-2 flex gap-2">
+            <button onClick={simulate} disabled={!!busy} className="px-4 py-2 rounded-lg bg-gray-800 text-white text-sm disabled:opacity-50">
+              {busy === 'sim' ? 'Analyzing…' : 'Receive this email'}
+            </button>
+            <span className="text-xs text-gray-500 self-center">Demo tool: the email goes through the same security checks and AI analysis as a real one.</span>
+          </div>
+        </div>
+      )}
 
       {notice && <div className="mb-4 rounded-lg bg-blue-50 border border-blue-200 px-4 py-2 text-sm text-blue-900">{notice}</div>}
 

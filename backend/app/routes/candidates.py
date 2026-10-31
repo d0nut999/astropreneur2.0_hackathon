@@ -2,6 +2,7 @@
 (one person can apply to several jobs; each application has its own score and status)."""
 from typing import Optional
 
+from pydantic import BaseModel
 from fastapi import APIRouter, Depends, HTTPException
 from fastapi.responses import Response
 from sqlmodel import Session, select
@@ -50,6 +51,7 @@ def _row(db: Session, app: Application) -> dict:
         "criteria": [{"label": c["label"], "score": c["score"], "weight": c["weight"]} for c in crit],
         "created_at": app.created_at.isoformat(),
         "recommendation": _latest_eval(db, app.id).recommendation if _latest_eval(db, app.id) else None,
+        "has_invite": db.exec(select(Draft).where(Draft.application_id == app.id, Draft.type == DraftType.INVITE)).first() is not None,
         "decision": _latest_decision(db, app.id).decision if _latest_decision(db, app.id) else None,
     }
 
@@ -77,6 +79,40 @@ def list_candidates(job_id: int, db: Session = Depends(get_session)):
         else:
             r["rank"] = None
     return rows
+
+
+class BulkRequest(BaseModel):
+    ids: list[int]
+
+
+@router.post("/bulk/shortlist_and_invite")
+def bulk_shortlist_and_invite(req: BulkRequest, db: Session = Depends(get_session), user: User = Depends(human)):
+    """✋ HR ticked several candidates: shortlist each one (recorded separately in the audit log) and prepare
+    a personal invitation for each (2 common questions + 1 tailored to their CV). Nothing is sent: all drafts
+    go to Approvals."""
+    if not req.ids or len(req.ids) > 50:
+        raise HTTPException(422, "Select between 1 and 50 candidates.")
+    results = []
+    for app_id in dict.fromkeys(req.ids):  # unique, keep order
+        app = db.get(Application, app_id)
+        label = f"Candidate #{app_id:03d}"
+        if not app:
+            results.append({"id": app_id, "label": label, "ok": False, "message": "not found"})
+            continue
+        try:
+            if app.status == ApplicationStatus.SCORED:
+                transition(db, app, ApplicationStatus.SHORTLISTED, actor=f"user:{user.id}")
+            if app.status != ApplicationStatus.SHORTLISTED:
+                raise ValueError(f"status is {app.status.value} (only scored candidates can be shortlisted)")
+            draft = prepare_invitation(db, app, actor=f"user:{user.id}")
+            results.append({"id": app_id, "label": label, "ok": True, "draft_id": draft.id})
+        except (ValueError, StateTransitionError) as e:
+            results.append({"id": app_id, "label": label, "ok": False, "message": str(e)})
+    done = sum(r["ok"] for r in results)
+    log_audit(db, actor=f"user:{user.id}", action="bulk_shortlist", entity="application", entity_id=0,
+              payload={"ids": req.ids, "invitations": done})
+    return {"invitations": done, "results": results,
+            "message": f"{done} candidate(s) shortlisted; {done} personal invitation(s) waiting in Approvals."}
 
 
 @router.get("/{candidate_id}")
@@ -245,41 +281,79 @@ def make_decision(candidate_id: int, req: DecisionRequest, db: Session = Depends
         db.refresh(draft)
     log_audit(db, actor=f"user:{user.id}", action="final_decision", entity="application", entity_id=app.id,
               payload={"decision": decision, "ai": ai, "agrees_with_ai": not disagrees, "note": req.note[:200]})
-    msg = ("Decision saved. 3 interview times were reserved in your calendar; the email proposing them is waiting "
-           "in Approvals." if decision == "advance" else "Decision saved. The email to the candidate is waiting in Approvals.")
+    msg = ("Decision saved. The email inviting the candidate to pick an interview time is waiting in Approvals."
+           if decision == "advance" else "Decision saved. The email to the candidate is waiting in Approvals.")
     return {"id": app.id, "status": app.status.value, "decision": decision, "agrees_with_ai": not disagrees,
             "draft_id": draft.id, "message": msg}
 
 
 @router.post("/{candidate_id}/schedule/new")
 def new_slots(candidate_id: int, db: Session = Depends(get_session), user: User = Depends(human)):
-    """✋ Propose 3 new interview times (after the candidate declined, or the offer expired).
-    Uses what the candidate wrote about their availability."""
+    """✋ Send a new scheduling link (after the candidate declined, or the link expired).
+    The candidate's stated availability is used to show matching times first."""
     app = db.get(Application, candidate_id)
     dec = _latest_decision(db, candidate_id) if app else None
     if not app or not dec or dec.decision != "advance":
         raise HTTPException(400, "Only advanced candidates can be scheduled.")
-    scheduler.expire_stale(db)
     st = scheduler.scheduling_status(db, app.id)
     if st and st["status"] in ("draft", "pending", "booked"):
-        raise HTTPException(400, f"There is already an offer in status '{st['status']}'.")
-    prefs = scheduler.parse_availability(st["availability_note"], __import__("datetime").datetime.now()) if st else None
-    _offer, draft = scheduler.create_offer(db, app, actor=f"user:{user.id}", prefs=prefs,
+        raise HTTPException(400, f"There is already an invitation in status '{st['status']}'.")
+    _offer, draft = scheduler.create_offer(db, app, actor=f"user:{user.id}",
+                                           availability_note=(st or {}).get("availability_note", ""),
                                            round_no=(st["round"] + 1) if st else 1)
-    return {"draft_id": draft.id, "message": "3 new times reserved. The email is waiting in Approvals."}
+    return {"draft_id": draft.id, "message": "New scheduling email drafted. Approve it in Approvals to send it."}
 
 
 @router.get("/{candidate_id}/interview.ics")
 def interview_ics(candidate_id: int, db: Session = Depends(get_session)):
     """Calendar file for the booked interview (import into Google Calendar / Outlook)."""
-    st = scheduler.scheduling_status(db, candidate_id)
-    slot_info = next((s for s in (st or {}).get("slots", []) if s["status"] == "booked"), None)
-    if not slot_info:
+    slot = scheduler.booked_slot(db, candidate_id)
+    if not slot:
         raise HTTPException(404, "No booked interview.")
-    from ..models import InterviewSlot
-    slot = db.get(InterviewSlot, slot_info["id"])
     app = db.get(Application, candidate_id)
     job = db.get(Job, app.job_id)
     body = scheduler.ics_for(slot, f"Final interview - Candidate #{app.id:03d} - {job.title}")
     return Response(body, media_type="text/calendar",
                     headers={"Content-Disposition": f'attachment; filename="interview-{app.id:03d}.ics"'})
+
+
+@router.post("/{candidate_id}/schedule/requests/{request_id}/book")
+def book_requested_time(candidate_id: int, request_id: int, db: Session = Depends(get_session),
+                        user: User = Depends(human)):
+    """✋ Book the exact time the candidate asked for by email (if still free). A confirmation email is drafted."""
+    from ..models import TimeRequest
+    req = db.get(TimeRequest, request_id)
+    if not req or req.application_id != candidate_id or req.status != "open" or not req.requested_start:
+        raise HTTPException(404, "Open request with a time not found")
+    try:
+        slot = scheduler.book_time(db, candidate_id, req.requested_start, actor=f"user:{user.id}")
+    except scheduler.SlotTaken as e:
+        raise HTTPException(409, {"message": str(e), "alternatives": [t.isoformat() for t in e.alternatives]})
+    req.status = "booked"
+    db.add(req)
+    db.commit()
+    return {"ok": True, "start": slot.start.isoformat(),
+            "message": "Interview booked. The confirmation email is waiting in Approvals."}
+
+
+@router.post("/{candidate_id}/schedule/requests/{request_id}/propose")
+def propose_alternatives(candidate_id: int, request_id: int, db: Session = Depends(get_session),
+                         user: User = Depends(human)):
+    """✋ The asked time is not possible: send a new scheduling link showing times that match the request first."""
+    from ..models import OfferStatus, TimeRequest
+    req = db.get(TimeRequest, request_id)
+    if not req or req.application_id != candidate_id or req.status != "open":
+        raise HTTPException(404, "Open request not found")
+    app = db.get(Application, candidate_id)
+    old = scheduler.latest_offer(db, candidate_id)
+    if old and old.status in (OfferStatus.DRAFT, OfferStatus.PENDING):
+        old.status = OfferStatus.CANCELLED
+        db.add(old)
+        db.commit()
+    note = req.text if not req.requested_start else f"{req.requested_start:%A} {'morning' if req.requested_start.hour < 12 else 'afternoon'}"
+    _offer, draft = scheduler.create_offer(db, app, actor=f"user:{user.id}", availability_note=note,
+                                           round_no=(old.round + 1) if old else 1)
+    req.status = "answered"
+    db.add(req)
+    db.commit()
+    return {"draft_id": draft.id, "message": "A new scheduling email (times closest to the request first) is waiting in Approvals."}

@@ -13,7 +13,7 @@ from ..config import settings
 from ..db import get_session
 from ..models import (
     Application, Candidate, Decision, Draft, Email, Evaluation, Event, InterviewQuestion, InterviewSlot, Score,
-    ScheduleOffer, User, UserRole, VideoSubmission,
+    ScheduleOffer, TimeRequest, User, UserRole, VideoSubmission,
 )
 from ..services.inbox import load_demo_emails
 from ..services.triage import process_incoming
@@ -68,7 +68,7 @@ def reset_demo(reload: bool = True, db: Session = Depends(get_session), user: Us
     the demo emails. Users, jobs and the audit log are kept (the audit log is append-only)."""
     if settings.app_env != "dev":
         raise HTTPException(403, "Demo reset is only available in dev mode.")
-    for model in (InterviewSlot, ScheduleOffer, Decision, Evaluation, VideoSubmission, Draft, Event, Score, Email):
+    for model in (TimeRequest, InterviewSlot, ScheduleOffer, Decision, Evaluation, VideoSubmission, Draft, Event, Score, Email):
         for row in db.exec(select(model)).all():
             db.delete(row)
     db.commit()
