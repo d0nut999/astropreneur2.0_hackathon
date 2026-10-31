@@ -1,44 +1,63 @@
 /**
- * Approvals (drafts) page.
+ * Approvals (drafts) page: every outgoing email waits here.
+ * Nothing is sent until HR clicks "Approve & send".
  */
 import { useEffect, useState } from 'react'
-import { apiGet, apiPost } from '../api'
+import { Link } from 'react-router-dom'
+import { apiGet, apiPost, apiPut } from '../api'
 import StatusBadge from '../components/StatusBadge'
 
 export default function Approvals() {
   const [drafts, setDrafts] = useState([])
   const [loading, setLoading] = useState(true)
+  const [tab, setTab] = useState('pending')
+  const [editing, setEditing] = useState(null) // { id, subject, body }
+  const [notice, setNotice] = useState('')
+
+  const load = async () => {
+    try {
+      const res = await apiGet(`/approvals?status=${tab}`)
+      setDrafts(res.data)
+    } catch (err) {
+      console.error('Failed to load approvals:', err)
+    } finally {
+      setLoading(false)
+    }
+  }
 
   useEffect(() => {
-    const load = async () => {
-      try {
-        const res = await apiGet('/approvals')
-        setDrafts(res.data)
-      } catch (err) {
-        console.error('Failed to load approvals:', err)
-      } finally {
-        setLoading(false)
-      }
-    }
-
     load()
-  }, [])
+  }, [tab])
+
+  const update = (id, patch) => setDrafts(drafts.map((d) => (d.id === id ? { ...d, ...patch } : d)))
 
   const handleApprove = async (draftId) => {
     try {
-      await apiPost(`/approvals/${draftId}/approve`, {})
-      setDrafts(drafts.map(d => d.id === draftId ? { ...d, status: 'approved' } : d))
+      const res = await apiPost(`/approvals/${draftId}/approve`, {})
+      update(draftId, { status: res.data.status || 'approved' })
+      setNotice(res.data.message ? `${res.data.message}${res.data.to ? ` → ${res.data.to}` : ''}` : 'Approved')
     } catch (err) {
-      console.error('Approval failed:', err)
+      setNotice(err.response?.data?.detail || 'Approval failed')
     }
   }
 
   const handleReject = async (draftId) => {
     try {
       await apiPost(`/approvals/${draftId}/reject`, {})
-      setDrafts(drafts.map(d => d.id === draftId ? { ...d, status: 'rejected' } : d))
+      update(draftId, { status: 'rejected' })
+      setNotice('Draft rejected. Nothing was sent.')
     } catch (err) {
-      console.error('Rejection failed:', err)
+      setNotice(err.response?.data?.detail || 'Rejection failed')
+    }
+  }
+
+  const saveEdit = async () => {
+    try {
+      await apiPut(`/approvals/${editing.id}`, { subject: editing.subject, body: editing.body })
+      update(editing.id, { subject: editing.subject, body: editing.body })
+      setEditing(null)
+    } catch (err) {
+      setNotice(err.response?.data?.detail || 'Could not save')
     }
   }
 
@@ -46,48 +65,80 @@ export default function Approvals() {
 
   return (
     <div>
-      <h1 className="text-3xl font-bold mb-6">Approval Queue</h1>
+      <h1 className="text-3xl font-bold mb-1">Approval Queue</h1>
+      <p className="text-gray-500 text-sm mb-4">The AI drafts. You read, edit, and decide. Nothing leaves without your click.</p>
+
+      <div className="flex gap-2 mb-4">
+        {['pending', 'sent', 'approved', 'rejected', 'all'].map((t) => (
+          <button key={t} onClick={() => setTab(t)}
+            className={`px-3 py-1.5 rounded-full text-sm font-medium capitalize ${
+              tab === t ? 'bg-gray-900 text-white' : 'bg-white border border-gray-200 text-gray-700 hover:bg-gray-50'
+            }`}>
+            {t}
+          </button>
+        ))}
+      </div>
+
+      {notice && <div className="mb-4 rounded-lg bg-blue-50 border border-blue-200 px-4 py-2 text-sm text-blue-900">{notice}</div>}
 
       <div className="space-y-4">
         {drafts.map((draft) => (
           <div key={draft.id} className="bg-white p-6 rounded-lg shadow">
-            <div className="flex justify-between items-start mb-4">
-              <div>
-                <h2 className="text-xl font-semibold">{draft.subject}</h2>
+            <div className="flex justify-between items-start mb-3">
+              <div className="min-w-0">
+                {editing?.id === draft.id ? (
+                  <input className="w-full border rounded px-2 py-1 text-lg font-semibold" value={editing.subject}
+                    onChange={(e) => setEditing({ ...editing, subject: e.target.value })} />
+                ) : (
+                  <h2 className="text-xl font-semibold">{draft.subject}</h2>
+                )}
                 <p className="text-sm text-gray-600 mt-1">
-                  Type: <span className="font-medium">{draft.type}</span>
+                  To: <span className="font-medium">{draft.to_addr || '—'}</span> · Type: <span className="font-medium">{draft.type}</span>
+                  {draft.email_id && (
+                    <> · <Link to={`/inbox?id=${draft.email_id}`} className="text-blue-600 hover:underline">original email</Link></>
+                  )}
                 </p>
               </div>
               <StatusBadge status={draft.status} />
             </div>
 
-            <div className="bg-gray-50 p-4 rounded mb-4 max-h-48 overflow-y-auto">
-              <p className="text-sm text-gray-700 whitespace-pre-wrap">{draft.body}</p>
-            </div>
+            {editing?.id === draft.id ? (
+              <textarea className="w-full border rounded p-3 text-sm h-48 mb-4" value={editing.body}
+                onChange={(e) => setEditing({ ...editing, body: e.target.value })} />
+            ) : (
+              <div className="bg-gray-50 p-4 rounded mb-4 max-h-48 overflow-y-auto">
+                <p className="text-sm text-gray-700 whitespace-pre-wrap">{draft.body}</p>
+              </div>
+            )}
 
             {draft.status === 'pending' && (
               <div className="flex gap-3">
-                <button
-                  onClick={() => handleApprove(draft.id)}
-                  className="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700"
-                >
-                  Approve
-                </button>
-                <button
-                  onClick={() => handleReject(draft.id)}
-                  className="bg-red-600 text-white px-4 py-2 rounded hover:bg-red-700"
-                >
-                  Reject
-                </button>
+                {editing?.id === draft.id ? (
+                  <>
+                    <button onClick={saveEdit} className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700">Save</button>
+                    <button onClick={() => setEditing(null)} className="border px-4 py-2 rounded hover:bg-gray-50">Cancel</button>
+                  </>
+                ) : (
+                  <>
+                    <button onClick={() => handleApprove(draft.id)} className="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700">
+                      Approve &amp; send
+                    </button>
+                    <button onClick={() => setEditing({ id: draft.id, subject: draft.subject, body: draft.body })}
+                      className="border border-gray-300 px-4 py-2 rounded hover:bg-gray-50">
+                      Edit
+                    </button>
+                    <button onClick={() => handleReject(draft.id)} className="bg-red-600 text-white px-4 py-2 rounded hover:bg-red-700">
+                      Reject
+                    </button>
+                  </>
+                )}
               </div>
             )}
           </div>
         ))}
       </div>
 
-      {drafts.length === 0 && (
-        <p className="text-gray-500">No pending approvals.</p>
-      )}
+      {drafts.length === 0 && <p className="text-gray-500">No {tab === 'all' ? '' : tab} drafts.</p>}
     </div>
   )
 }

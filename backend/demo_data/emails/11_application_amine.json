@@ -1,0 +1,13 @@
+{
+  "from_name": "Amine Khelifi",
+  "from_addr": "amine.k@candidate-mail.test",
+  "received_offset_minutes": -260,
+  "subject": "Job application",
+  "body": "Hi,\n\nI'd like to apply for the open position at your company. CV attached.\n\nAmine",
+  "attachments": [
+    {
+      "filename": "Amine_Khelifi_CV.pdf",
+      "source": "cvs/cv_weak_amine_khelifi.pdf"
+    }
+  ]
+}

@@ -1,0 +1,7 @@
+{
+  "from_name": "Omar Gharbi",
+  "from_addr": "omar.gharbi@fictional-company.test",
+  "received_offset_minutes": -50,
+  "subject": "Quick sync today",
+  "body": "Hello,\n\nCan we have a quick call today at {in_2h} about the onboarding of the two new interns? It should take 15 minutes.\n\nOmar"
+}

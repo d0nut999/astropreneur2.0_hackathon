@@ -1,0 +1,7 @@
+{
+  "from_name": "Omar Gharbi",
+  "from_addr": "omar.gharbi@fictional-company.test",
+  "received_offset_minutes": -300,
+  "subject": "Onboarding plan for interns",
+  "body": "Hi,\n\nCan you prepare the onboarding plan for the summer interns before {day_in_4}? A one-page document is enough.\n\nThanks,\nOmar"
+}

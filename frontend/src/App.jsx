@@ -5,6 +5,8 @@ import { BrowserRouter as Router, Routes, Route } from 'react-router-dom'
 import Layout from './components/Layout'
 import Login from './pages/Login'
 import Dashboard from './pages/Dashboard'
+import Inbox from './pages/Inbox'
+import Agenda from './pages/Agenda'
 import Jobs from './pages/Jobs'
 import Approvals from './pages/Approvals'
 import Audit from './pages/Audit'
@@ -22,6 +24,8 @@ export default function App() {
         <Route element={<Layout />}>
           <Route path="/" element={<Dashboard />} />
           <Route path="/dashboard" element={<Dashboard />} />
+          <Route path="/inbox" element={<Inbox />} />
+          <Route path="/agenda" element={<Agenda />} />
           <Route path="/jobs" element={<Jobs />} />
           <Route path="/approvals" element={<Approvals />} />
           <Route path="/audit" element={<Audit />} />

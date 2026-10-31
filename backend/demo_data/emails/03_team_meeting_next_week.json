@@ -1,0 +1,7 @@
+{
+  "from_name": "Nadia Ben Salem",
+  "from_addr": "nadia.bensalem@fictional-company.test",
+  "received_offset_minutes": -240,
+  "subject": "HR team meeting",
+  "body": "Hi team,\n\nOur monthly HR team meeting will take place on {day_in_4} at 14:00 in the main meeting room. Agenda: training budget and new leave policy.\n\nNadia"
+}

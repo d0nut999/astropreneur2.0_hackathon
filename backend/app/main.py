@@ -7,6 +7,9 @@ from .config import settings
 from .db import init_db
 from .security_headers import SecurityHeadersMiddleware
 from . import routes
+from .routes import (  # noqa: F401  (import so routes.<name> is available)
+    approvals, audit, auth, candidates, digest, emails, health, jobs, portal,
+)
 
 
 def create_app() -> FastAPI:
@@ -27,7 +30,7 @@ def create_app() -> FastAPI:
     # Add CORS
     app.add_middleware(
         CORSMiddleware,
-        allow_origins=settings.cors_origins,
+        allow_origins=settings.cors_origin_list,
         allow_credentials=True,
         allow_methods=["*"],
         allow_headers=["*"],
@@ -46,6 +49,7 @@ def create_app() -> FastAPI:
     app.include_router(routes.digest.router)
     app.include_router(routes.audit.router)
     app.include_router(routes.portal.router)
+    app.include_router(routes.emails.router)
 
     return app
 

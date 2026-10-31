@@ -1,12 +1,12 @@
 """Pydantic schemas for requests, responses, and LLM tasks."""
 from datetime import datetime
 from typing import Optional
-from pydantic import BaseModel, EmailStr
+from pydantic import BaseModel, field_validator
 
 
 # ============= Auth =============
 class LoginRequest(BaseModel):
-    email: EmailStr
+    email: str  # plain str: demo addresses use the reserved .test domain
     password: str
 
 
@@ -149,10 +149,52 @@ class InterviewEvaluation(BaseModel):
     summary: str
 
 
-class EmailClassification(BaseModel):
-    """Output schema for email classifier."""
-    category: str  # "application" | "inquiry" | "follow-up" | "spam"
-    urgency: str  # "high" | "normal" | "low"
-    needs_human: bool
-    injection_suspected: bool
+class MeetingInfo(BaseModel):
+    """A meeting found in an email."""
+    title: str = ""
+    date: Optional[str] = None   # "YYYY-MM-DD"
+    time: Optional[str] = None   # "HH:MM" (24h)
+    location: str = ""
+    with_people: list[str] = []
+
+
+EMAIL_CATEGORIES = {
+    "candidate_application", "candidate_reply", "work_meeting",
+    "work_request", "work_info", "spam_phishing",
+}
+
+
+class EmailAnalysis(BaseModel):
+    """Output schema for the email classifier (LLM or offline rules)."""
+    category: str
     summary: str
+    needs_human_reply: bool = False
+    urgency_hint: str = "normal"          # the AI's opinion only; rules decide
+    meeting: Optional[MeetingInfo] = None
+    deadline: Optional[str] = None       # "YYYY-MM-DD"
+    deadline_what: str = ""
+    injection_suspected: bool = False
+    injection_text: str = ""
+
+    @field_validator("category")
+    @classmethod
+    def _known_category(cls, v: str) -> str:
+        v = (v or "").strip().lower()
+        return v if v in EMAIL_CATEGORIES else "work_info"
+
+    @field_validator("urgency_hint")
+    @classmethod
+    def _known_urgency(cls, v: str) -> str:
+        v = (v or "").strip().lower()
+        return v if v in {"urgent", "normal", "low"} else "normal"
+
+    @field_validator("summary")
+    @classmethod
+    def _short_summary(cls, v: str) -> str:
+        return (v or "").strip()[:400]
+
+
+class DraftReply(BaseModel):
+    """Output schema for an AI-drafted reply."""
+    subject: str
+    body: str

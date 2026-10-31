@@ -1,0 +1,13 @@
+{
+  "from_name": "Youssef Trabelsi",
+  "from_addr": "youssef.t@candidate-mail.test",
+  "received_offset_minutes": -200,
+  "subject": "Candidature for backend developer position",
+  "body": "Hello,\n\nI am applying for the backend developer position. My resume is attached.\n\nThank you,\nYoussef",
+  "attachments": [
+    {
+      "filename": "Youssef_Trabelsi_CV.pdf",
+      "source": "cvs/cv_medium_youssef_trabelsi.pdf"
+    }
+  ]
+}

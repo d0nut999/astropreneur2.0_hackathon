@@ -8,7 +8,7 @@ from .config import settings
 engine = create_engine(
     settings.database_url,
     connect_args={"check_same_thread": False},
-    echo=settings.app_env == "dev",
+    echo=False,  # set True to print every SQL query
 )
 
 

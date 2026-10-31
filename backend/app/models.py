@@ -1,5 +1,6 @@
 """SQLModel table definitions."""
 from datetime import datetime
+from pydantic import NaiveDatetime  # local time, no timezone (works with all SQLModel versions)
 from enum import Enum
 from typing import Optional
 from sqlmodel import SQLModel, Field, JSON
@@ -60,7 +61,7 @@ class Job(SQLModel, table=True):
     description: str
     rubric_json: dict = Field(default_factory=dict, sa_column=Column(JSON))
     rubric_approved_by: Optional[int] = None
-    created_at: datetime = Field(default_factory=datetime.utcnow)
+    created_at: NaiveDatetime = Field(default_factory=datetime.now)
 
 
 class Candidate(SQLModel, table=True):
@@ -83,7 +84,7 @@ class Application(SQLModel, table=True):
     status: ApplicationStatus = ApplicationStatus.RECEIVED
     security_flags_json: dict = Field(default_factory=dict, sa_column=Column(JSON))
     anonymized_profile_json: dict = Field(default_factory=dict, sa_column=Column(JSON))
-    created_at: datetime = Field(default_factory=datetime.utcnow)
+    created_at: NaiveDatetime = Field(default_factory=datetime.now)
 
 
 class Score(SQLModel, table=True):
@@ -96,7 +97,7 @@ class Score(SQLModel, table=True):
     total: float
     model: str
     prompt_version: str
-    created_at: datetime = Field(default_factory=datetime.utcnow)
+    created_at: NaiveDatetime = Field(default_factory=datetime.now)
 
 
 class InterviewQuestion(SQLModel, table=True):
@@ -109,7 +110,7 @@ class InterviewQuestion(SQLModel, table=True):
     text: str
     rubric: str
     is_tailored: bool = False
-    created_at: datetime = Field(default_factory=datetime.utcnow)
+    created_at: NaiveDatetime = Field(default_factory=datetime.now)
 
 
 class VideoSubmission(SQLModel, table=True):
@@ -120,10 +121,10 @@ class VideoSubmission(SQLModel, table=True):
     application_id: int = Field(foreign_key="applications.id")
     path: str
     token_hash: str  # SHA256 of one-time token
-    expires_at: datetime
+    expires_at: NaiveDatetime
     used: bool = False
     transcript_json: dict = Field(default_factory=dict, sa_column=Column(JSON))
-    created_at: datetime = Field(default_factory=datetime.utcnow)
+    created_at: NaiveDatetime = Field(default_factory=datetime.now)
 
 
 class Evaluation(SQLModel, table=True):
@@ -136,7 +137,7 @@ class Evaluation(SQLModel, table=True):
     recommendation: str  # "Advance" | "Hold" | "Not recommended"
     confidence: float
     summary_json: dict = Field(default_factory=dict, sa_column=Column(JSON))
-    created_at: datetime = Field(default_factory=datetime.utcnow)
+    created_at: NaiveDatetime = Field(default_factory=datetime.now)
 
 
 class Draft(SQLModel, table=True):
@@ -144,28 +145,94 @@ class Draft(SQLModel, table=True):
     __tablename__ = "drafts"
 
     id: Optional[int] = Field(default=None, primary_key=True)
-    application_id: Optional[int] = Field(foreign_key="applications.id")
+    application_id: Optional[int] = Field(default=None, foreign_key="applications.id")
+    email_id: Optional[int] = Field(default=None, foreign_key="emails.id")
+    to_addr: str = ""
     type: DraftType
     subject: str
     body: str
     status: DraftStatus = DraftStatus.PENDING
-    approved_by: Optional[int] = Field(foreign_key="users.id")
-    created_at: datetime = Field(default_factory=datetime.utcnow)
+    approved_by: Optional[int] = Field(default=None, foreign_key="users.id")
+    created_at: NaiveDatetime = Field(default_factory=datetime.now)
+
+
+class EmailCategory(str, Enum):
+    """What kind of email this is."""
+    CANDIDATE_APPLICATION = "candidate_application"
+    CANDIDATE_REPLY = "candidate_reply"
+    WORK_MEETING = "work_meeting"
+    WORK_REQUEST = "work_request"
+    WORK_INFO = "work_info"
+    SPAM_PHISHING = "spam_phishing"
+
+
+class Urgency(str, Enum):
+    """Final urgency decided by the urgency engine (rules in code)."""
+    URGENT = "urgent"
+    NORMAL = "normal"
+    LOW = "low"
+    FLAGGED = "flagged"  # phishing or manipulation attempt
+
+
+class EmailStatus(str, Enum):
+    NEW = "new"
+    HANDLED = "handled"
 
 
 class Email(SQLModel, table=True):
-    """Incoming email from HR inbox."""
+    """Incoming email from the HR inbox, with the AI analysis."""
     __tablename__ = "emails"
 
     id: Optional[int] = Field(default=None, primary_key=True)
+    message_id: str = Field(default="", index=True)  # to avoid importing twice
+    from_name: str = ""
     from_addr: str
+    to_addr: str = ""
     subject: str
     body: str
-    category: str  # "application" | "inquiry" | "follow-up" | "spam"
-    urgency: str  # "high" | "normal" | "low"
+    attachments_json: list = Field(default_factory=list, sa_column=Column(JSON))
+    received_at: NaiveDatetime = Field(default_factory=datetime.now)
+
+    # AI analysis (validated JSON) + final decision by rules
+    category: str = "work_info"
+    summary: str = ""
+    urgency: str = "normal"
+    urgency_reasons_json: list = Field(default_factory=list, sa_column=Column(JSON))
     needs_human: bool = False
     injection_suspected: bool = False
-    received_at: datetime = Field(default_factory=datetime.utcnow)
+    injection_text: str = ""
+    security_flags_json: list = Field(default_factory=list, sa_column=Column(JSON))
+    analysis_source: str = ""  # "ai" or "rules" (offline fallback)
+    status: EmailStatus = EmailStatus.NEW
+    application_id: Optional[int] = Field(default=None, foreign_key="applications.id")
+
+
+class EventType(str, Enum):
+    MEETING = "meeting"
+    DEADLINE = "deadline"
+
+
+class EventStatus(str, Enum):
+    SUGGESTED = "suggested"   # found by AI, waiting for HR
+    CONFIRMED = "confirmed"   # HR clicked confirm
+    DISMISSED = "dismissed"   # HR clicked dismiss
+
+
+class Event(SQLModel, table=True):
+    """Meeting or deadline found in an email. HR confirms or dismisses it."""
+    __tablename__ = "events"
+
+    id: Optional[int] = Field(default=None, primary_key=True)
+    email_id: int = Field(foreign_key="emails.id")
+    type: EventType
+    title: str
+    date: Optional[str] = None   # YYYY-MM-DD
+    time: Optional[str] = None   # HH:MM
+    location: str = ""
+    attendees_json: list = Field(default_factory=list, sa_column=Column(JSON))
+    status: EventStatus = EventStatus.SUGGESTED
+    decided_by: Optional[str] = None
+    created_at: NaiveDatetime = Field(default_factory=datetime.now)
 
 
 class AuditLog(SQLModel, table=True):
@@ -178,4 +245,4 @@ class AuditLog(SQLModel, table=True):
     entity: str
     entity_id: int
     payload_hash: str
-    timestamp: datetime = Field(default_factory=datetime.utcnow)
+    timestamp: NaiveDatetime = Field(default_factory=datetime.now)

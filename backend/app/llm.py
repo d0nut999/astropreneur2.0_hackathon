@@ -88,71 +88,63 @@ def complete_json(
     client = OpenAI(
         api_key=settings.llm_api_key,
         base_url=settings.llm_base_url,
+        timeout=60,
     )
 
-    # Parse fallback models
-    fallback_models = []
+    # Models to try in order: main model, then fallbacks.
+    # (Works with any OpenAI-compatible provider: Groq, Gemini, OpenRouter, Claude...)
+    models = [settings.llm_model]
     if settings.llm_fallback_models:
-        fallback_models = [m.strip() for m in settings.llm_fallback_models.split(",")]
+        models += [m.strip() for m in settings.llm_fallback_models.split(",") if m.strip()]
 
-    attempts = 0
     last_error = None
+    for model in models:
+        for _attempt in range(settings.llm_max_attempts):
+            try:
+                response = client.chat.completions.create(
+                    model=model,
+                    messages=[
+                        {"role": "system", "content": system},
+                        {"role": "user", "content": user},
+                    ],
+                    temperature=settings.llm_temperature,
+                    response_format={"type": "json_object"},
+                )
+                content = response.choices[0].message.content or ""
+                output_json = _extract_json(content)
+                result = schema.model_validate(output_json)
+            except (json.JSONDecodeError, ValueError) as e:
+                # Bad JSON or wrong shape -> retry same model
+                last_error = f"{model}: {e}"
+                continue
+            except Exception as e:
+                # API error (rate limit, model not found...) -> try next model
+                last_error = f"{model}: {e}"
+                break
 
-    while attempts < settings.llm_max_attempts:
-        attempts += 1
-        try:
-            # Call API
-            extra_body = {}
-            if fallback_models:
-                extra_body["models"] = [settings.llm_model] + fallback_models
-
-            response = client.chat.completions.create(
-                model=settings.llm_model,
-                messages=[
-                    {"role": "system", "content": system},
-                    {"role": "user", "content": user},
-                ],
-                temperature=settings.llm_temperature,
-                response_format={"type": "json_object"},
-                extra_body=extra_body,
-            )
-
-            # Parse response
-            content = response.choices[0].message.content
-            output_json = json.loads(content)
-
-            # Validate with schema
-            result = schema.model_validate(output_json)
-
-            # Save to cache
             _save_cache(cache_key, output_json)
-
-            # Audit log
             if db:
-                from .audit import log_audit
                 log_audit(
                     db,
                     actor="ai",
                     action=task,
                     entity="llm_call",
                     entity_id=0,
-                    payload={
-                        "model": settings.llm_model,
-                        "prompt_version": prompt_version,
-                        "cached": False,
-                    },
+                    payload={"model": model, "prompt_version": prompt_version, "cached": False},
                 )
-
             return result
 
-        except json.JSONDecodeError as e:
-            last_error = str(e)
-            continue
-        except Exception as e:
-            last_error = str(e)
-            raise LLMError(f"LLM call failed: {e}")
+    raise LLMError(f"All LLM attempts failed. Last error: {last_error}")
 
-    raise LLMError(
-        f"LLM returned invalid JSON after {settings.llm_max_attempts} attempts. "
-        f"Last error: {last_error}"
-    )
+
+def _extract_json(content: str) -> dict:
+    """Parse JSON even if the model wrapped it in ```json fences or added text."""
+    content = content.strip()
+    if content.startswith("```"):
+        content = content.strip("`")
+        if content.lower().startswith("json"):
+            content = content[4:]
+    start, end = content.find("{"), content.rfind("}")
+    if start == -1 or end == -1:
+        raise json.JSONDecodeError("No JSON object found", content, 0)
+    return json.loads(content[start : end + 1])

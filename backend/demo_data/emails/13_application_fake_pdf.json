@@ -1,0 +1,13 @@
+{
+  "from_name": "Unknown Applicant",
+  "from_addr": "apply-now@free-mail.test",
+  "received_offset_minutes": -25,
+  "subject": "My application",
+  "body": "Hello, please open my CV attached for the position.",
+  "attachments": [
+    {
+      "filename": "CV.pdf",
+      "source": "cvs/fake_cv_really_an_exe.pdf"
+    }
+  ]
+}

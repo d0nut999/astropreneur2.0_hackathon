@@ -1,4 +1,6 @@
 """Test human-in-the-loop state machine rules."""
+import uuid
+
 import pytest
 from sqlmodel import Session
 from app.db import engine, init_db
@@ -20,7 +22,7 @@ def test_ai_cannot_enter_shortlisted():
         db.add(job)
         db.commit()
 
-        candidate = Candidate(name="Test", email="test@example.com")
+        candidate = Candidate(name="Test", email=f"test-{uuid.uuid4().hex[:8]}@example.com")
         db.add(candidate)
         db.commit()
 
@@ -45,7 +47,7 @@ def test_ai_cannot_enter_invited():
         db.add(job)
         db.commit()
 
-        candidate = Candidate(name="Test", email="test@example.com")
+        candidate = Candidate(name="Test", email=f"test-{uuid.uuid4().hex[:8]}@example.com")
         db.add(candidate)
         db.commit()
 
@@ -68,7 +70,7 @@ def test_ai_cannot_enter_decided():
         db.add(job)
         db.commit()
 
-        candidate = Candidate(name="Test", email="test@example.com")
+        candidate = Candidate(name="Test", email=f"test-{uuid.uuid4().hex[:8]}@example.com")
         db.add(candidate)
         db.commit()
 
@@ -91,7 +93,7 @@ def test_human_can_enter_shortlisted():
         db.add(job)
         db.commit()
 
-        candidate = Candidate(name="Test", email="test@example.com")
+        candidate = Candidate(name="Test", email=f"test-{uuid.uuid4().hex[:8]}@example.com")
         db.add(candidate)
         db.commit()
 

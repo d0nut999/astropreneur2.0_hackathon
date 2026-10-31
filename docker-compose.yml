@@ -9,14 +9,12 @@ services:
       - "8000:8000"
     volumes:
       - ./backend:/app
+    env_file:
+      - ./backend/.env          # LLM key etc. live here (never committed)
     environment:
-      - APP_ENV=dev
-      - DATABASE_URL=sqlite:///./data/hireguard.db
-      - CORS_ORIGINS=http://localhost:5173
-      - LLM_BASE_URL=https://openrouter.ai/api/v1
-      - LLM_API_KEY=
       - SMTP_HOST=mailpit
       - SMTP_PORT=1025
+      - MAILPIT_API_URL=http://mailpit:8025
     depends_on:
       - mailpit
 

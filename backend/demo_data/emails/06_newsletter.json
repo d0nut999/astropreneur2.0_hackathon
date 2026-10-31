@@ -1,0 +1,7 @@
+{
+  "from_name": "Company News",
+  "from_addr": "news@fictional-company.test",
+  "received_offset_minutes": -600,
+  "subject": "This week at Fictional Company",
+  "body": "Hello everyone,\n\nThis week: the new cafeteria menu, photos from the team-building day, and a reminder that the parking lot will be repainted next month.\n\nHave a great week!"
+}

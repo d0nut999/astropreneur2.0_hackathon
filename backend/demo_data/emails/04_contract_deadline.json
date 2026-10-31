@@ -1,0 +1,7 @@
+{
+  "from_name": "Sami Jlassi (Finance)",
+  "from_addr": "sami.jlassi@fictional-company.test",
+  "received_offset_minutes": -90,
+  "subject": "Contract needed for new hire - by tomorrow",
+  "body": "Hello,\n\nCould you please send me the signed contract for the new developer by tomorrow? Finance needs it to prepare the first payroll. It's urgent.\n\nBest,\nSami"
+}

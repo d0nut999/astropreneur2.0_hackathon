@@ -1,0 +1,13 @@
+{
+  "from_name": "Sara Ben Ali",
+  "from_addr": "sara.benali@candidate-mail.test",
+  "received_offset_minutes": -180,
+  "subject": "Application - Junior Backend Developer",
+  "body": "Dear HR team,\n\nI would like to apply for the Junior Backend Developer position. Please find my CV attached. I have experience with Python, FastAPI and PostgreSQL from my internship.\n\nBest regards,\nSara Ben Ali",
+  "attachments": [
+    {
+      "filename": "Sara_Ben_Ali_CV.pdf",
+      "source": "cvs/cv_strong_sara_ben_ali.pdf"
+    }
+  ]
+}

@@ -1,0 +1,7 @@
+{
+  "from_name": "Youssef Trabelsi",
+  "from_addr": "youssef.t@candidate-mail.test",
+  "received_offset_minutes": -40,
+  "subject": "Re: Interview - request to reschedule",
+  "body": "Hello,\n\nThank you for the interview invitation. Unfortunately I have an exam on the proposed day. Would it be possible to reschedule my interview to {day_in_4} afternoon? Please let me know as soon as possible.\n\nBest regards,\nYoussef"
+}

@@ -1,0 +1,7 @@
+{
+  "from_name": "IT Security Team",
+  "from_addr": "security-alert@micros0ft-support.test",
+  "received_offset_minutes": -20,
+  "subject": "URGENT: Your account is locked",
+  "body": "Dear user,\n\nWe detected unusual sign-in activity. Your account is locked. Click here within 24 hours to verify your account and confirm your password: http://micros0ft-support.test/verify\n\nIT Security"
+}

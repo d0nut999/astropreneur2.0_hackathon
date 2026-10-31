@@ -55,3 +55,6 @@ build/
 # OS
 .DS_Store
 Thumbs.db
+
+# Runtime data (each person has their own)
+backend/data/
