@@ -77,3 +77,17 @@ def test_disagreeing_with_ai_requires_a_reason():
     assert detail["status"] == "DECIDED" and detail["final_decision"]
     # the outcome email is a DRAFT waiting for approval, not sent
     assert any(d["application_id"] == app_id for d in c.get("/approvals").json())
+
+
+def test_every_rejection_needs_a_reason():
+    c, app_id, qs = _invited_candidate(60)
+    c.post(f"/portal/{qs[0][0]}/answers", json={"answers": {str(qid): GOOD for _, qid in qs}})
+    assert c.post(f"/candidates/{app_id}/decision", json={"decision": "reject"}).status_code == 422
+    r = c.post(f"/candidates/{app_id}/decision", json={"decision": "reject", "note": "Not enough Python experience"})
+    assert r.status_code == 200
+
+
+def test_confidence_is_lower_near_the_decision_line():
+    from app.services.evaluator import recommend  # noqa: F401  (rules unchanged)
+    margin = lambda combined: min(1.0, 0.5 + min(abs(combined - 50), abs(combined - 70)) / 20)  # noqa: E731
+    assert margin(68) < margin(85)

@@ -212,9 +212,13 @@ def make_decision(candidate_id: int, req: DecisionRequest, db: Session = Depends
     ev = _latest_eval(db, app.id)
     ai = ev.recommendation if ev else "None"
     disagrees = (decision == "advance" and ai == "Not recommended") or (decision == "reject" and ai == "Advance")
-    if disagrees and len(req.note.strip()) < 10:
-        raise HTTPException(422, f"The AI recommended '{ai}'. Please write a short reason (10+ characters) "
-                                 f"for your different decision. It is saved in the audit log.")
+    if len(req.note.strip()) < 10:
+        if decision == "reject":
+            raise HTTPException(422, "Please write a short reason for the rejection (10+ characters). "
+                                     "It is saved in the audit log, so the decision can be explained later.")
+        if disagrees:
+            raise HTTPException(422, f"The AI recommended '{ai}'. Please write a short reason (10+ characters) "
+                                     f"for advancing this candidate. It is saved in the audit log.")
     try:
         transition(db, app, ApplicationStatus.DECIDED, actor=f"user:{user.id}")
     except StateTransitionError as e:

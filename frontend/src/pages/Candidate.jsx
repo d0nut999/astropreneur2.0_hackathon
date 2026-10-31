@@ -50,12 +50,14 @@ export default function Candidate() {
   }
 
   const rec = c?.evaluation?.recommendation
-  const needsReason = (d) => (d === 'advance' && rec === 'Not recommended') || (d === 'reject' && rec === 'Advance')
+  const needsReason = (d) => d === 'reject' || (d === 'advance' && rec === 'Not recommended')
 
   const decide = async (decision) => {
     setDecisionError('')
     if (needsReason(decision) && note.trim().length < 10) {
-      setDecisionError(`The AI recommended "${rec}". To ${decision} instead, please write a short reason (10+ characters) in the box above. It is saved in the audit log.`)
+      setDecisionError(decision === 'reject'
+        ? 'Please write a short reason for the rejection (10+ characters) in the box above. It is saved in the audit log, so the decision can be explained later.'
+        : `The AI recommended "${rec}". To advance this candidate, please write a short reason (10+ characters) in the box above.`)
       return
     }
     setBusy(decision)
@@ -224,7 +226,7 @@ export default function Candidate() {
                 The AI recommends <RecommendationBadge value={c.evaluation?.recommendation} />. The final decision is yours.
               </p>
               <textarea value={note} onChange={(e) => { setNote(e.target.value); setDecisionError('') }}
-                placeholder="Note — required if you decide differently from the AI (e.g. 'Salary expectations above budget')"
+                placeholder="Reason — required to reject, or to advance someone the AI did not recommend (e.g. 'Not enough database experience')"
                 className={`w-full border rounded-lg p-2 text-sm h-16 mb-2 ${decisionError ? 'border-red-400 ring-2 ring-red-200' : ''}`} />
               {decisionError && <p className="text-sm text-red-700 mb-2">{decisionError}</p>}
               <div className="flex gap-3">

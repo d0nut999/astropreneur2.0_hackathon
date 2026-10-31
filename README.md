@@ -35,7 +35,7 @@ Built for the **Secure AI HR System** hackathon (Astropreneur 2.0). All people, 
 | **CV screening & ranking** | Applications arriving by email are checked, anonymized and scored per job criterion. Every score shows **a quote from the CV as proof**. Ranked list with **blind mode** (names hidden). |
 | **Written interview** | For a shortlisted candidate the AI prepares 3 questions (2 identical for everyone + 1 tailored to their weakest skill) and an invitation with a personal, one-time link. |
 | **Evaluation & recommendation** | Answers are scored with evidence; HireGuard recommends **Advance / Hold / Not recommended** with a confidence level. |
-| **Human decision** | HR advances or rejects. Disagreeing with the AI requires a written reason, saved in the audit log. |
+| **Human decision** | HR advances or rejects. Every rejection — and advancing someone the AI did not recommend — requires a written reason, saved in the audit log. |
 | **Approval queue** | Every outgoing email (replies, invitations, outcomes) is a draft that HR can edit, approve or reject. |
 | **Audit log** | Append-only record of every AI output and human action. |
 
@@ -48,7 +48,7 @@ Built for the **Secure AI HR System** hackathon (Astropreneur 2.0). All people, 
 | Requirement | How HireGuard proves it |
 |---|---|
 | **Intelligent** | Ranked shortlist with per-criterion justification and CV quotes; urgency with reasons; tailored interview question; recommendation with evidence and confidence. |
-| **Reliable** | Every AI output is validated against a schema (retries + fallback model). If the AI is down, **offline rules** take over so the app never stops. Evidence quotes are checked against the source. Totals and recommendations are computed by code. 42 automated tests. |
+| **Reliable** | Every AI output is validated against a schema (retries + fallback model). If the AI is down, **offline rules** take over so the app never stops. Evidence quotes are checked against the source. Totals and recommendations are computed by code. 47 automated tests. |
 | **Human in the loop** | Shortlisting, invitations, final decisions, sending any email and confirming meetings are **human-only**, enforced in the backend state machine (the AI is rejected with `StateTransitionError`), not just hidden in the UI. |
 | **Security** | AI security (prompt-injection detection in emails, CVs and answers; hidden-text detection; tool-less AI), system security (file checks, random filenames, secrets in `.env`), web security (sessions, CSRF, brute-force lockout, CSP, plain-text rendering). See [§6](#6-security). |
 
@@ -63,7 +63,7 @@ Log in at **http://localhost:5173** with `recruiter@fictional-company.test` / `r
 3. **Jobs → Junior Backend Developer**: ranked list in **blind mode**. Open Candidate #001: each score has a CV quote marked *✓ found in CV*. Expand "What the AI saw" to show the anonymized CV.
 4. **Shortlist** → **Prepare interview invitation** → **Approvals**: read, edit, *Approve & send*.
 5. Back on the candidate: *Open the candidate's link (demo)* → answer the 3 questions as the candidate → send. Opening the link again: *already used*.
-6. The candidate page now shows the **recommendation** (e.g. *Advance, 87% confidence*: CV 92 × 40% + interview 67 × 60%). Click **Reject** → refused until you write a reason. Click **Advance** → the outcome email waits in Approvals.
+6. The candidate page now shows the **recommendation** (e.g. *Advance, 87% confidence*: CV 92 × 40% + interview 67 × 60%). Click **Reject** → refused until you write a reason (every rejection must be explainable). Click **Advance** → the outcome email waits in Approvals.
 7. **Audit**: every step, who did it (AI, system, candidate or `user:2`), when.
 
 Optional "live" email: run Mailpit (§8) and `python scripts/send_demo_emails.py 01 07`, then *Sync inbox*.
@@ -113,7 +113,7 @@ More detail: [ARCHITECTURE.md](ARCHITECTURE.md).
 | Email triage | category, summary, meeting/deadline, urgency *hint* | **final urgency by rules** (VIP sender, meeting < 24 h, deadline < 48 h, urgent wording); phishing/injection → *suspicious*, never urgent |
 | CV scoring | 0–5 per criterion **+ a quote from the CV** | quote must exist in the CV (fuzzy match ≥ 90 %) or the criterion gets 0; weighted total; missing must-have caps the total at 40 |
 | Interview questions | 1 tailored question + what a good answer contains | 2 standard questions identical for everyone; no personal topics |
-| Answer evaluation | 0–5 per answer **+ a quote from the answer** | quote check; answers containing instructions to the AI get 0; recommendation = rules on 40 % CV + 60 % interview; confidence from evidence, not from the AI's tone |
+| Answer evaluation | 0–5 per answer **+ a quote from the answer** | quote check; answers containing instructions to the AI get 0; recommendation = rules on 40 % CV + 60 % interview; confidence from the amount of evidence and the distance to the decision line, never from the AI's tone (max 95 %) |
 | Reply drafts | short polite draft | always a draft; sent only to the original sender, only after HR approval |
 
 Every prompt treats the content as **untrusted data** inside delimiters, asks the model to flag manipulation instead of obeying it, and requests JSON validated by Pydantic. Every call is cached and audited (model + prompt version).
@@ -153,7 +153,7 @@ Every prompt treats the content as **untrusted data** inside delimiters, asks th
 - **Job-related criteria only**, with an HR-approved rubric (weights visible on the job page).
 - **Same core questions for every candidate**; evaluation judges content, never style or language level.
 - **No face, voice or emotion analysis.** Inferring emotions of job applicants is prohibited in the EU AI Act (Art. 5(1)(f)); recruitment AI is high-risk (Annex III) and requires human oversight and logging — which HireGuard provides by design.
-- **Accountability:** decisions that go against the AI need a written reason, stored with the decision and in the audit log.
+- **Accountability:** every rejection, and every decision that goes against the AI, needs a written reason, stored with the decision and in the audit log.
 
 ---
 
@@ -190,7 +190,7 @@ Alternative: `docker-compose up` (backend, frontend, Mailpit), then `docker exec
 
 ```bash
 cd backend
-python -m pytest -q        # 42 tests
+python -m pytest -q        # 47 tests
 ```
 
 | File | Proves |
@@ -200,7 +200,7 @@ python -m pytest -q        # 42 tests
 | `test_injection.py`, `test_upload.py` | hidden-text CV, executable renamed to `.pdf`, oversized file are all blocked |
 | `test_scoring.py` | hidden text never reaches the AI; anonymization; **same CV + different name = same score**; invented quotes rejected |
 | `test_interview.py` | link locked until approval, one-time, expires, rubric never shown, token never stored |
-| `test_evaluation.py` | recommendation rules; manipulative answer → 0 and Hold; disagreeing with the AI needs a reason |
+| `test_evaluation.py` | recommendation rules; manipulative answer → 0 and Hold; every rejection needs a reason; lower confidence near the decision line |
 | `test_auth.py` | login required, CSRF, HttpOnly cookie, logout, brute-force lockout, portal stays public |
 | `test_system.py` | demo reset requires login and keeps the audit log |
 

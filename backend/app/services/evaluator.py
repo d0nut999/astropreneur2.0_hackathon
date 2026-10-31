@@ -115,8 +115,12 @@ def evaluate_interview(db: Session, app: Application) -> Evaluation:
     low_evidence = words < 15 * len(answers)
     recommendation, reasons = recommend(combined, flags, low_evidence)
 
-    # Confidence: how much solid evidence we have (not how "sure" the AI sounds)
-    confidence = round(min(1.0, 0.3 + 0.5 * verified_count / len(answers) + min(0.2, words / 1500)), 2)
+    # Confidence (not how "sure" the AI sounds):
+    # 1) how much solid evidence we have, 2) how far the score is from a decision line (50 / 70).
+    evidence_strength = 0.3 + 0.5 * verified_count / len(answers) + min(0.2, words / 1500)
+    margin = min(abs(combined - 50), abs(combined - 70))
+    margin_factor = min(1.0, 0.5 + margin / 20)  # 2 points from the line -> 0.6, 10+ points -> 1.0
+    confidence = round(min(0.95, evidence_strength * margin_factor), 2)
     if low_evidence or flags:
         confidence = min(confidence, 0.4)
 
