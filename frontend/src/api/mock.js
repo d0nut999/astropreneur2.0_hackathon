@@ -12,6 +12,7 @@ export const mockResponses = {
   },
 
   'GET /auth/me': {
+    csrf_token: 'mock',
     id: 1,
     email: 'recruiter@fictional-company.test',
     role: 'recruiter',

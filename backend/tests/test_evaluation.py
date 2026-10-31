@@ -1,7 +1,9 @@
 """Interview evaluation + human decision tests."""
 import uuid
 
-from fastapi.testclient import TestClient
+from fastapi.testclient import TestClient  # noqa: F401
+
+from tests.conftest import logged_in_client
 from sqlmodel import Session, select
 
 from app.auth import hash_password
@@ -39,7 +41,7 @@ def _invited_candidate(cv_total: float) -> tuple[TestClient, int, list]:
         db.add(Score(application_id=a.id, criteria_json={"criteria": []}, total=cv_total, model="t", prompt_version="t"))
         db.commit()
         app_id = a.id
-    c = TestClient(app)
+    c = logged_in_client()
     c.post(f"/candidates/{app_id}/shortlist")
     draft = c.post(f"/candidates/{app_id}/invite").json()["draft_id"]
     c.post(f"/approvals/{draft}/approve")

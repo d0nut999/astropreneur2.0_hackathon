@@ -1,7 +1,8 @@
 /**
  * Main layout component with navigation.
  */
-import { NavLink, Link, Outlet } from 'react-router-dom'
+import { NavLink, Link, Outlet, useNavigate } from 'react-router-dom'
+import { useAuth } from '../auth'
 
 const LINKS = [
   { to: '/dashboard', label: 'Today' },
@@ -13,6 +14,12 @@ const LINKS = [
 ]
 
 export default function Layout() {
+  const { user, logout } = useAuth()
+  const navigate = useNavigate()
+  const signOut = async () => {
+    await logout()
+    navigate('/login')
+  }
   return (
     <div className="min-h-screen bg-gray-50">
       <header className="bg-white shadow">
@@ -35,10 +42,13 @@ export default function Layout() {
                 </NavLink>
               </li>
             ))}
-            <li>
-              <Link to="/login" className="ml-2 px-3 py-2 text-sm text-gray-500 hover:text-gray-900">
-                Login
-              </Link>
+            <li className="ml-3 pl-3 border-l flex items-center gap-2">
+              <span className="text-xs text-gray-500 text-right leading-tight">
+                {user?.email}<br /><span className="uppercase tracking-wide">{user?.role}</span>
+              </span>
+              <button onClick={signOut} className="px-3 py-1.5 text-sm rounded-md border border-gray-200 text-gray-600 hover:bg-gray-50">
+                Log out
+              </button>
             </li>
           </ul>
         </nav>

@@ -249,6 +249,19 @@ class Decision(SQLModel, table=True):
     created_at: NaiveDatetime = Field(default_factory=datetime.now)
 
 
+class UserSession(SQLModel, table=True):
+    """Server-side login session. The browser only holds a random token (HttpOnly cookie);
+    we store its SHA-256 hash, so a database leak does not leak usable sessions."""
+    __tablename__ = "sessions"
+
+    id: Optional[int] = Field(default=None, primary_key=True)
+    token_hash: str = Field(index=True, unique=True)
+    csrf_token: str
+    user_id: int = Field(foreign_key="users.id")
+    expires_at: NaiveDatetime
+    created_at: NaiveDatetime = Field(default_factory=datetime.now)
+
+
 class AuditLog(SQLModel, table=True):
     """Append-only audit log."""
     __tablename__ = "audit_logs"

@@ -1,8 +1,9 @@
 """FastAPI application factory."""
-from fastapi import FastAPI
+from fastapi import Depends, FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from slowapi import Limiter
 from slowapi.util import get_remote_address
+from .auth import require_user
 from .config import settings
 from .db import init_db
 from .security_headers import SecurityHeadersMiddleware
@@ -41,15 +42,18 @@ def create_app() -> FastAPI:
     app.state.limiter = limiter
 
     # Register routers
+    # Public: health, login, candidate portal (protected by its own one-time token)
     app.include_router(routes.health.router)
     app.include_router(routes.auth.router)
-    app.include_router(routes.jobs.router)
-    app.include_router(routes.candidates.router)
-    app.include_router(routes.approvals.router)
-    app.include_router(routes.digest.router)
-    app.include_router(routes.audit.router)
     app.include_router(routes.portal.router)
-    app.include_router(routes.emails.router)
+    # HR only: every route below requires a logged-in user (+ CSRF header for changes)
+    logged_in = [Depends(require_user)]
+    app.include_router(routes.jobs.router, dependencies=logged_in)
+    app.include_router(routes.candidates.router, dependencies=logged_in)
+    app.include_router(routes.approvals.router, dependencies=logged_in)
+    app.include_router(routes.digest.router, dependencies=logged_in)
+    app.include_router(routes.audit.router, dependencies=logged_in)
+    app.include_router(routes.emails.router, dependencies=logged_in)
 
     return app
 

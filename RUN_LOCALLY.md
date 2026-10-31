@@ -37,7 +37,9 @@ npm install
 npm run dev
 ```
 
-Open http://localhost:5173 → **Today** → **Load demo emails**.
+Open **http://localhost:5173** (use `localhost`, not `127.0.0.1`, or the login cookie won't work)
+and sign in with the demo account `recruiter@fictional-company.test` / `recruiter123`,
+then **Today** → **Load demo emails**.
 
 ## 3. Optional: emails arriving "live" (Mailpit)
 

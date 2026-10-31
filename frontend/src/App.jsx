@@ -3,6 +3,7 @@
  */
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom'
 import Layout from './components/Layout'
+import { AuthProvider, RequireAuth } from './auth'
 import Login from './pages/Login'
 import Dashboard from './pages/Dashboard'
 import Inbox from './pages/Inbox'
@@ -17,13 +18,14 @@ import Portal from './pages/Portal'
 export default function App() {
   return (
     <Router>
+      <AuthProvider>
       <Routes>
         {/* Public routes */}
         <Route path="/login" element={<Login />} />
         <Route path="/portal/:token" element={<Portal />} />
 
         {/* Protected routes with layout */}
-        <Route element={<Layout />}>
+        <Route element={<RequireAuth><Layout /></RequireAuth>}>
           <Route path="/" element={<Dashboard />} />
           <Route path="/dashboard" element={<Dashboard />} />
           <Route path="/inbox" element={<Inbox />} />
@@ -35,6 +37,7 @@ export default function App() {
           <Route path="/audit" element={<Audit />} />
         </Route>
       </Routes>
+      </AuthProvider>
     </Router>
   )
 }

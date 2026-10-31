@@ -2,7 +2,9 @@
 import uuid
 from datetime import datetime, timedelta
 
-from fastapi.testclient import TestClient
+from fastapi.testclient import TestClient  # noqa: F401
+
+from tests.conftest import logged_in_client
 from sqlmodel import Session, select
 
 from app.auth import hash_password
@@ -31,7 +33,7 @@ def _setup():
 
 def test_full_invitation_flow():
     app_id = _setup()
-    c = TestClient(app)
+    c = logged_in_client()
     assert c.post(f"/candidates/{app_id}/invite").status_code == 400  # not shortlisted yet
     assert c.post(f"/candidates/{app_id}/shortlist").status_code == 200
 
@@ -55,7 +57,7 @@ def test_full_invitation_flow():
 
 def test_raw_token_is_never_stored_and_expired_links_fail():
     app_id = _setup()
-    c = TestClient(app)
+    c = logged_in_client()
     c.post(f"/candidates/{app_id}/shortlist")
     draft_id = c.post(f"/candidates/{app_id}/invite").json()["draft_id"]
     token = c.get(f"/candidates/{app_id}").json()["interview"]["portal_link"].rsplit("/", 1)[1]

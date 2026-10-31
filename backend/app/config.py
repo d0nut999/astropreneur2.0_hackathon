@@ -32,6 +32,10 @@ class Settings(BaseSettings):
     imap_password: str = ""
     hr_mailbox: str = "hr@fictional-company.test"
 
+    # Login sessions
+    session_hours: int = 8
+    cookie_secure: bool = False   # set True when served over HTTPS
+
     # Limits
     max_upload_mb: int = 5
     max_video_mb: int = 100
