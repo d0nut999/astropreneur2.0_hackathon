@@ -10,6 +10,9 @@ import ScoreBar from '../components/ScoreBar'
 import RecommendationBadge from '../components/RecommendationBadge'
 import { baseURL } from '../api/client'
 import SchedulingPanel from '../components/SchedulingPanel'
+import InlineDrafts from '../components/InlineDrafts'
+import FollowUpPanel from '../components/FollowUpPanel'
+import CandidateNav from '../components/CandidateNav'
 
 export default function Candidate() {
   const { id } = useParams()
@@ -34,8 +37,14 @@ export default function Candidate() {
   }
 
   useEffect(() => {
+    setLoading(true)
+    setNotice('')
+    setNote('')
+    setDecisionError('')
     load()
   }, [id])
+
+  const scrollToDrafts = () => setTimeout(() => document.getElementById('inline-drafts')?.scrollIntoView({ behavior: 'smooth', block: 'center' }), 150)
 
   const act = async (label, path, msg) => {
     setBusy(label)
@@ -44,6 +53,7 @@ export default function Candidate() {
       await apiPost(path)
       setNotice(msg)
       await load()
+      scrollToDrafts()
     } catch (err) {
       setNotice(err.response?.data?.detail || 'Action failed')
     } finally {
@@ -66,8 +76,11 @@ export default function Candidate() {
     setNotice('')
     try {
       const res = await apiPost(`/candidates/${id}/decision`, { decision, note })
-      setNotice(res.data.message)
+      setNotice(decision === 'advance'
+        ? 'Decision saved. The email inviting the candidate to pick an interview time is in the yellow box.'
+        : 'Decision saved. The email to the candidate is in the yellow box.')
       await load()
+      scrollToDrafts()
     } catch (err) {
       setDecisionError(err.response?.data?.detail || 'Could not save the decision')
     } finally {
@@ -83,7 +96,7 @@ export default function Candidate() {
 
   return (
     <div>
-      {c.job && <Link to={`/jobs/${c.job.id}`} className="text-sm text-blue-600 hover:underline">← {c.job.title}</Link>}
+      <CandidateNav job={c.job} currentId={id} showNames={showName} />
 
       <div className="flex flex-wrap items-start justify-between gap-4 mt-2 mb-6">
         <div>
@@ -173,6 +186,10 @@ export default function Candidate() {
         </div>
       )}
 
+      <FollowUpPanel f={c.followup} onDone={async () => { await load(); scrollToDrafts() }} />
+
+      <InlineDrafts drafts={c.pending_drafts} onDone={load} />
+
       {/* Actions */}
       <div className="bg-white rounded-lg shadow p-6 mb-6">
         <p className="text-xs uppercase tracking-wide text-gray-500 mb-3">Your decision</p>
@@ -190,15 +207,15 @@ export default function Candidate() {
             </button>
           )}
           {c.status === 'SHORTLISTED' && !c.interview?.invite_status && (
-            <button onClick={() => act('invite', `/candidates/${id}/invite`, 'Invitation drafted with 3 questions. Review and approve it in Approvals — nothing has been sent yet.')}
+            <button onClick={() => act('invite', `/candidates/${id}/invite`, 'Invitation drafted with 3 questions (one tailored to this CV). Review and send it in the yellow box.')}
               disabled={!!busy} className="px-4 py-2 rounded-lg bg-blue-600 text-white font-medium hover:bg-blue-700 disabled:opacity-50">
               {busy === 'invite' ? 'Preparing questions…' : '✉️ Prepare interview invitation'}
             </button>
           )}
           {c.status === 'SHORTLISTED' && c.interview?.invite_status === 'pending' && (
-            <Link to="/approvals" className="px-4 py-2 rounded-lg bg-yellow-100 text-yellow-900 font-medium hover:bg-yellow-200">
-              Invitation waiting for your approval →
-            </Link>
+            <a href="#inline-drafts" className="px-4 py-2 rounded-lg bg-yellow-100 text-yellow-900 font-medium hover:bg-yellow-200">
+              ↑ Invitation waiting for your approval
+            </a>
           )}
           {c.status === 'SHORTLISTED' && c.interview?.invite_status === 'rejected' && (
             <p className="text-sm text-gray-600">You rejected the invitation draft. Nothing was sent.</p>
@@ -251,7 +268,7 @@ export default function Candidate() {
                 {' · '}{new Date(c.final_decision.created_at).toLocaleString()}
               </span>
               {c.final_decision.note && <p className="mt-2 text-gray-700">Note: "{c.final_decision.note}"</p>}
-              {c.final_decision.decision === 'reject' && <Link to="/approvals" className="block mt-2 text-blue-600 hover:underline">The email to the candidate is in Approvals →</Link>}
+
             </div>
           )}
           {quarantined && <p className="text-sm text-gray-600">Blocked CVs cannot be scored or shortlisted automatically.</p>}

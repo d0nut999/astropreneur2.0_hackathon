@@ -47,6 +47,9 @@ class Settings(BaseSettings):
     offer_link_days: int = 7        # how long a scheduling link stays valid
     times_shown_to_candidate: int = 6
     interview_location: str = "Fictional Company HQ, Room B (or a video link sent by HR)"
+    # Follow-ups: remind candidates who did not answer (HR approves every reminder)
+    followup_after_hours: int = 48      # a reminder becomes "due" after this much silence
+    followup_max_reminders: int = 2     # after that, HR decides (e.g. close the application)
 
     # Login sessions
     session_hours: int = 8

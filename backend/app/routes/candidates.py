@@ -13,13 +13,13 @@ from ..db import get_session
 import re
 
 from ..models import (
-    Application, ApplicationStatus, Candidate, Decision, Draft, DraftType, Email, Evaluation, Job, Score, User,
+    Application, ApplicationStatus, Candidate, Decision, Draft, DraftStatus, DraftType, Email, Evaluation, Job, Score, User,
     UserRole, VideoSubmission,
 )
 from ..schemas import DecisionRequest, ShortlistRequest
 from ..services.evaluator import evaluate_interview
 from ..services.interview import prepare_invitation, questions_for
-from ..services import scheduler
+from ..services import followups, scheduler
 from ..services.scorer import score_application
 from ..state_machine import StateTransitionError, transition
 
@@ -139,6 +139,11 @@ def get_candidate_detail(candidate_id: int, db: Session = Depends(get_session)):
         "email_id": email.id if email else None,
         "interview": _interview(db, app),
         "scheduling": scheduler.scheduling_status(db, app.id),
+        # emails about this candidate waiting for HR approval (approve them right here)
+        "followup": followups.item_for(db, app),
+        "pending_drafts": [d.model_dump(mode="json") for d in db.exec(
+            select(Draft).where(Draft.application_id == app.id, Draft.status == DraftStatus.PENDING)
+            .order_by(Draft.id)).all()],
     }
 
 

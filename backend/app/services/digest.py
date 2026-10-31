@@ -68,6 +68,14 @@ def generate_digest(db: Session, now: datetime | None = None) -> dict:
         parts.append(f"{len(need_new_slots)} candidate(s) need new interview times")
     from .scheduler import capacity
     spots = capacity(db)
+    from .followups import waiting_list
+    follow = waiting_list(db)
+    due = [i for i in follow if i["state"] == "due"]
+    your_call = [i for i in follow if i["state"] == "your_call"]
+    if due:
+        parts.append(f"{len(due)} candidate(s) have not replied: a reminder is due")
+    if your_call:
+        parts.append(f"{len(your_call)} candidate(s) still silent after reminders (your call)")
     if pending_drafts:
         parts.append(f"{len(pending_drafts)} reply draft(s) waiting for your approval")
     summary = ("Today: " + ", ".join(parts) + ".") if parts else "Inbox is clear. Nothing needs your attention."
@@ -91,6 +99,8 @@ def generate_digest(db: Session, now: datetime | None = None) -> dict:
             for e in urgent[:6]
         ],
         "need_new_slots_count": len(need_new_slots),
+        "followups_due_count": len(due),
+        "followups_your_call_count": len(your_call),
         "interview_spots_7_days": spots,
         "upcoming_events": [
             {"id": f"interview-{sl.id}", "email_id": None, "application_id": sl.application_id, "type": "interview",

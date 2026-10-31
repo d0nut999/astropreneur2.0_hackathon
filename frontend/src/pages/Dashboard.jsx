@@ -72,10 +72,11 @@ export default function Dashboard() {
         )}
       </div>
 
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+      <div className="grid grid-cols-2 lg:grid-cols-5 gap-4 mb-8">
         <Card label="Urgent emails" value={digest.high_urgency_count} color="text-red-600" to="/inbox" />
         <Card label="Meetings today" value={meetingsToday.length} color="text-emerald-600" to="/agenda" />
         <Card label="Waiting for your approval" value={digest.pending_approvals_count} color="text-blue-600" to="/approvals" />
+        <Card label="Follow-ups due" value={(digest.followups_due_count ?? 0) + (digest.followups_your_call_count ?? 0)} color="text-orange-600" to="/followups" />
         <Card label="Suspicious emails blocked" value={digest.flagged_count ?? 0} color="text-amber-600" to="/inbox" />
       </div>
 

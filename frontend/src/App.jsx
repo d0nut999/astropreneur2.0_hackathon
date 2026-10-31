@@ -11,6 +11,7 @@ import Calendar from './pages/Calendar'
 import Jobs from './pages/Jobs'
 import JobCandidates from './pages/JobCandidates'
 import Candidate from './pages/Candidate'
+import FollowUps from './pages/FollowUps'
 import Approvals from './pages/Approvals'
 import Audit from './pages/Audit'
 import Portal from './pages/Portal'
@@ -36,6 +37,7 @@ export default function App() {
           <Route path="/jobs" element={<Jobs />} />
           <Route path="/jobs/:id" element={<JobCandidates />} />
           <Route path="/candidates/:id" element={<Candidate />} />
+          <Route path="/followups" element={<FollowUps />} />
           <Route path="/approvals" element={<Approvals />} />
           <Route path="/audit" element={<Audit />} />
         </Route>

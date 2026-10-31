@@ -328,3 +328,14 @@ class AuditLog(SQLModel, table=True):
     entity_id: int
     payload_hash: str
     timestamp: NaiveDatetime = Field(default_factory=datetime.now)
+
+
+class SentEmail(SQLModel, table=True):
+    """When each approved email actually left HireGuard (used to know how long we have been waiting)."""
+    __tablename__ = "sent_emails"
+
+    id: Optional[int] = Field(default=None, primary_key=True)
+    draft_id: int = Field(foreign_key="drafts.id", index=True)
+    application_id: Optional[int] = Field(default=None, foreign_key="applications.id", index=True)
+    kind: str = "other"   # invite | answers_reminder | schedule | schedule_reminder | closing | other
+    sent_at: NaiveDatetime = Field(default_factory=datetime.now)

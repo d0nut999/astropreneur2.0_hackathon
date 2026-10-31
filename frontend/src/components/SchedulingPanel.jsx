@@ -20,7 +20,7 @@ export default function SchedulingPanel({ c, id, busy, act, reload, setNotice })
     setReqError('')
     try {
       const r = await apiPost(`/candidates/${id}/schedule/requests/${reqId}/book`)
-      setNotice(r.data.message)
+      setNotice('Interview booked. The confirmation email is in the yellow box.')
       await reload()
     } catch (e) {
       const d = e.response?.data?.detail
@@ -72,7 +72,7 @@ export default function SchedulingPanel({ c, id, busy, act, reload, setNotice })
 
       {s.status === 'draft' && (
         <p className="text-sm text-gray-700">
-          The email inviting the candidate to pick a time is ready. <Link to="/approvals" className="text-blue-600 hover:underline">Approve it in Approvals →</Link>
+          The email inviting the candidate to pick a time is ready — <a href="#inline-drafts" className="text-blue-600 hover:underline">review and send it in the yellow box</a>
           <span className="block text-xs text-gray-500 mt-1">Nothing is reserved: the candidate will see the times that are free when they open the link.</span>
         </p>
       )}
@@ -99,7 +99,7 @@ export default function SchedulingPanel({ c, id, busy, act, reload, setNotice })
           )}
           {s.status === 'expired' && <p className="text-sm text-gray-700 mb-3">The candidate did not use the link in time.</p>}
           {s.status === 'cancelled' && <p className="text-sm text-gray-700 mb-3">The scheduling email was cancelled.</p>}
-          <button onClick={() => act('reschedule', `/candidates/${id}/schedule/new`, 'New scheduling email drafted. Approve it in Approvals to send it.')}
+          <button onClick={() => act('reschedule', `/candidates/${id}/schedule/new`, 'New scheduling email drafted — review and send it in the yellow box.')}
             disabled={!!busy} className="px-4 py-2 rounded-lg bg-blue-600 text-white font-medium hover:bg-blue-700 disabled:opacity-50">
             {busy === 'reschedule' ? 'Preparing…' : s.status === 'declined' ? 'Send times matching their availability' : 'Send a scheduling link'}
           </button>
@@ -125,14 +125,14 @@ export default function SchedulingPanel({ c, id, busy, act, reload, setNotice })
                   <div className="text-sm">
                     <span className="text-red-700">✗ {fmtLong(r.requested_start)} is not available.</span>
                     <span className="text-gray-600"> Closest free: {r.alternatives.map(fmt).join(' · ') || 'none'}</span>
-                    <button onClick={() => act('propose', `/candidates/${id}/schedule/requests/${r.id}/propose`, 'A new scheduling email with the closest times is waiting in Approvals.')}
+                    <button onClick={() => act('propose', `/candidates/${id}/schedule/requests/${r.id}/propose`, 'A new scheduling email (closest times first) is in the yellow box.')}
                       className="ml-3 px-3 py-1.5 rounded bg-blue-600 text-white text-sm hover:bg-blue-700">Propose these</button>
                   </div>
                 )
               ) : (
                 <div className="text-sm">
                   <span className="text-gray-700">No exact time given. Matching free times: {r.alternatives.map(fmt).join(' · ') || 'none'}</span>
-                  <button onClick={() => act('propose', `/candidates/${id}/schedule/requests/${r.id}/propose`, 'A new scheduling email with matching times is waiting in Approvals.')}
+                  <button onClick={() => act('propose', `/candidates/${id}/schedule/requests/${r.id}/propose`, 'A new scheduling email (matching times first) is in the yellow box.')}
                     className="ml-3 px-3 py-1.5 rounded bg-blue-600 text-white text-sm hover:bg-blue-700">Propose these</button>
                 </div>
               )}

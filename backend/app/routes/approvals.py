@@ -9,6 +9,7 @@ from ..audit import log_audit
 from ..auth import require_role
 from ..db import get_session
 from ..models import Application, ApplicationStatus, Candidate, Draft, DraftStatus, DraftType, User, UserRole
+from ..services import followups
 from ..services.mailer import send_email
 from ..services.scheduler import activate_offer_for_draft, cancel_offer_for_draft
 from ..state_machine import transition
@@ -78,6 +79,7 @@ def _approve(d: Draft, db: Session, user: User) -> dict:
         db.commit()
         log_audit(db, actor="system", action="email_sent", entity="draft", entity_id=d.id, payload={"to": to, "via": how})
         activate_offer_for_draft(db, d)  # if this email proposes interview times, the link works from now
+        followups.record_sent(db, d)     # remember when it left (follow-up timing; activates a reminder's link)
         if d.type == DraftType.INVITE and d.application_id:
             app = db.get(Application, d.application_id)
             if app and app.status == ApplicationStatus.SHORTLISTED:
@@ -128,6 +130,7 @@ def reject_draft(draft_id: int, db: Session = Depends(get_session), user: User =
     d.status = DraftStatus.REJECTED
     db.add(d)
     db.commit()
+    followups.on_draft_rejected(db, d)  # a rejected reminder's new link never becomes active
     cancel_offer_for_draft(db, d)  # release interview times reserved for this email
     log_audit(db, actor=f"user:{user.id}", action="reject_draft", entity="draft", entity_id=d.id)
     return {"id": d.id, "status": d.status}

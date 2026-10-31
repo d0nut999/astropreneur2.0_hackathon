@@ -136,7 +136,7 @@ export default function Approvals() {
                     <> · <Link to={`/inbox?id=${draft.email_id}`} className="text-blue-600 hover:underline">original email</Link></>
                   )}
                   {draft.application_id && (
-                    <> · <Link to={`/candidates/${draft.application_id}`} className="text-blue-600 hover:underline">candidate</Link></>
+                    <> · <Link to={`/candidates/${draft.application_id}`} className="text-blue-600 hover:underline">← Candidate #{String(draft.application_id).padStart(3, '0')}</Link></>
                   )}
                 </p>
                 </div>

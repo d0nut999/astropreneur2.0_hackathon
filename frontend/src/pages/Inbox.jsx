@@ -8,6 +8,7 @@ import { apiGet, apiPost } from '../api'
 import UrgencyBadge from '../components/UrgencyBadge'
 import CategoryTag from '../components/CategoryTag'
 import { timeAgo, prettyDate } from '../utils/format'
+import InlineDrafts from '../components/InlineDrafts'
 
 const FILTERS = [
   { key: 'all', label: 'All', params: '' },
@@ -95,10 +96,15 @@ export default function Inbox() {
   const draftReply = () =>
     run('draft', async () => {
       await apiPost(`/emails/${selectedId}/draft_reply`)
-      setNotice('Reply drafted. It is waiting in Approvals — nothing has been sent.')
+      setNotice('Reply drafted below — read it, edit it, then send. Nothing has been sent yet.')
       const res = await apiGet(`/emails/${selectedId}`)
       setDetail(res.data)
     })
+
+  const reloadDetail = async () => {
+    const res = await apiGet(`/emails/${selectedId}`)
+    setDetail(res.data)
+  }
 
   const markHandled = () =>
     run('handled', async () => {
@@ -273,6 +279,14 @@ export default function Inbox() {
                 {detail.body}
               </div>
 
+              {detail.application_id && (
+                <Link to={`/candidates/${detail.application_id}`} className="inline-block mb-3 text-sm text-blue-600 hover:underline">
+                  → Open this candidate
+                </Link>
+              )}
+
+              <InlineDrafts drafts={detail.drafts?.filter((d) => d.status === 'pending')} onDone={reloadDetail} title="Reply waiting for your approval" />
+
               {/* Actions */}
               <div className="flex gap-2 flex-wrap">
                 {detail.urgency !== 'flagged' && (
@@ -287,11 +301,7 @@ export default function Inbox() {
                     ✓ Mark as handled
                   </button>
                 )}
-                {detail.drafts?.length > 0 && (
-                  <Link to="/approvals" className="px-4 py-2 text-sm text-blue-700 hover:underline">
-                    {detail.drafts.length} draft(s) in Approvals →
-                  </Link>
-                )}
+
               </div>
             </div>
           )}

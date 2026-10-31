@@ -19,7 +19,7 @@ TRANSITIONS = {
     ApplicationStatus.SCREENED: [ApplicationStatus.SCORED],
     ApplicationStatus.SCORED: [ApplicationStatus.SHORTLISTED],
     ApplicationStatus.SHORTLISTED: [ApplicationStatus.INVITED],
-    ApplicationStatus.INVITED: [ApplicationStatus.VIDEO_SUBMITTED],
+    ApplicationStatus.INVITED: [ApplicationStatus.VIDEO_SUBMITTED, ApplicationStatus.DECIDED],  # DECIDED: closed by HR (no response)
     ApplicationStatus.VIDEO_SUBMITTED: [ApplicationStatus.EVALUATED],
     ApplicationStatus.EVALUATED: [ApplicationStatus.DECIDED],
     ApplicationStatus.DECIDED: [],
