@@ -129,7 +129,7 @@ def create_draft_reply(email_id: int, db: Session = Depends(get_session)):
     if not e:
         raise HTTPException(404, "Email not found")
     if e.urgency == "flagged":
-        raise HTTPException(400, "This email was flagged as suspicious. HireGuard will not draft a reply to it.")
+        raise HTTPException(400, "This email was flagged as suspicious. HR Buddy will not draft a reply to it.")
     draft, source = draft_reply(e, db)
     row = Draft(email_id=e.id, application_id=e.application_id, to_addr=e.from_addr,  # only the original sender
                 type=DraftType.REPLY, subject=draft.subject, body=draft.body)

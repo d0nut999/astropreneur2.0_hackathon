@@ -1,4 +1,4 @@
-# Run HireGuard on your laptop (Windows, no Docker needed)
+# Run HR Buddy on your laptop (Windows, no Docker needed)
 
 You need: **Python 3.11+** and **Node.js 18+**.
 
@@ -51,11 +51,11 @@ cd backend
 python scripts/send_demo_emails.py 01 07 12
 ```
 
-Then in HireGuard → **Inbox** → **Sync inbox**. Approved replies also appear at http://localhost:8025.
+Then in HR Buddy → **Inbox** → **Sync inbox**. Approved replies also appear at http://localhost:8025.
 
 ## Without an API key?
 
-Everything still works: HireGuard falls back to offline rules (marked "offline rules" in the Inbox).
+Everything still works: HR Buddy falls back to offline rules (marked "offline rules" in the Inbox).
 With a Groq key, summaries and meeting detection are smarter.
 
 ## After pulling new code

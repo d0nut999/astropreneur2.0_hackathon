@@ -331,7 +331,7 @@ class AuditLog(SQLModel, table=True):
 
 
 class SentEmail(SQLModel, table=True):
-    """When each approved email actually left HireGuard (used to know how long we have been waiting)."""
+    """When each approved email actually left HR Buddy (used to know how long we have been waiting)."""
     __tablename__ = "sent_emails"
 
     id: Optional[int] = Field(default=None, primary_key=True)

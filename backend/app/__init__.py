@@ -1,1 +1,1 @@
-"""HireGuard app package."""
+"""HR Buddy app package."""

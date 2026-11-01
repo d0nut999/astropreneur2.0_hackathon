@@ -1,6 +1,6 @@
-# HireGuard — Architecture
+# HR Buddy — Architecture
 
-> **One sentence:** HireGuard reads the HR inbox, sorts every email (candidates *and* work emails), flags what is urgent, summarizes it, ranks candidates, and prepares replies — but **a human approves every action and every decision about people**.
+> **One sentence:** HR Buddy reads the HR inbox, sorts every email (candidates *and* work emails), flags what is urgent, summarizes it, ranks candidates, and prepares replies — but **a human approves every action and every decision about people**.
 
 > **Golden rule (from the brief):** the agent executes, the human decides.
 

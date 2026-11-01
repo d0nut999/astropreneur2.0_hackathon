@@ -43,7 +43,10 @@ export default function App() {
           <Route path="/jobs/:id/post" element={<JobPostEditor />} />
           <Route path="/jobs/:id" element={<JobCandidates />} />
           <Route path="/candidates/:id" element={<Candidate />} />
-          <Route path="/employees" element={<Employees />} />
+          <Route path="/employees" element={<Employees key="overview" section="overview" />} />
+          <Route path="/employees/leave" element={<Employees key="leave" section="leave" />} />
+          <Route path="/employees/handbook" element={<Employees key="handbook" section="handbook" />} />
+          <Route path="/employees/directory" element={<Employees key="directory" section="directory" />} />
           <Route path="/followups" element={<FollowUps />} />
           <Route path="/approvals" element={<Approvals />} />
           <Route path="/audit" element={<Audit />} />

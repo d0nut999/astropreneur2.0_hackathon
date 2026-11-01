@@ -50,7 +50,7 @@ export const useAuth = () => useContext(AuthContext)
 export function RequireAuth({ children }) {
   const { user, checking } = useAuth()
   const location = useLocation()
-  if (checking) return <div className="min-h-screen flex items-center justify-center text-gray-400">Loading…</div>
+  if (checking) return <div className="min-h-screen flex items-center justify-center text-slate-400">Loading…</div>
   if (!user) return <Navigate to={`/login?next=${encodeURIComponent(location.pathname + location.search)}`} replace />
   return children
 }

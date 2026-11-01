@@ -25,7 +25,7 @@ DATA_DIR = Path(__file__).resolve().parents[2] / "data"
 
 @router.get("/status")
 def status(db: Session = Depends(get_session)):
-    """What mode is HireGuard running in?"""
+    """What mode is HR Buddy running in?"""
     return {
         "ai_configured": bool(settings.llm_api_key),
         "ai_model": settings.llm_model if settings.llm_api_key else None,
@@ -44,7 +44,7 @@ def status(db: Session = Depends(get_session)):
 def test_ai(user: User = Depends(human)):
     """Send one tiny request to the AI provider to check the key and model work."""
     if not settings.llm_api_key:
-        return {"ok": False, "message": "No LLM_API_KEY in backend/.env - HireGuard runs on offline rules."}
+        return {"ok": False, "message": "No LLM_API_KEY in backend/.env - HR Buddy runs on offline rules."}
     started = time.time()
     try:
         client = OpenAI(api_key=settings.llm_api_key, base_url=settings.llm_base_url, timeout=20)
@@ -83,16 +83,16 @@ def reset_demo(reload: bool = True, db: Session = Depends(get_session), user: Us
         for row in db.exec(select(model)).all():
             db.delete(row)
     db.commit()
-    # job posts created during the demo are removed (the seeded job stays)
+    # jobs created during the demo (or by tests) are removed: only the first, seeded job stays
     from ..models import Job, JobPost
-    for post in db.exec(select(JobPost)).all():
-        job = db.get(Job, post.job_id)
-        for q in db.exec(select(InterviewQuestion).where(InterviewQuestion.job_id == post.job_id)).all():
+    jobs = db.exec(select(Job).order_by(Job.id)).all()
+    for job in jobs[1:]:
+        for q in db.exec(select(InterviewQuestion).where(InterviewQuestion.job_id == job.id)).all():
             db.delete(q)
-        db.delete(post)
+        for post in db.exec(select(JobPost).where(JobPost.job_id == job.id)).all():
+            db.delete(post)
         db.commit()
-        if job:
-            db.delete(job)
+        db.delete(job)
     db.commit()
     for folder in ("uploads", "outbox"):
         shutil.rmtree(DATA_DIR / folder, ignore_errors=True)

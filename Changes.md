@@ -1,8 +1,8 @@
-# TASK: Turn the existing frontend/backend skeleton into the base foundation for "HireGuard"
+# TASK: Turn the existing frontend/backend skeleton into the base foundation for "HR Buddy"
 
 ## 0. Context
 
-We are a team of 4 (mixed experience, some beginners) in a 16-hour hackathon ("Secure AI HR System"). HireGuard is an AI recruiting assistant that:
+We are a team of 4 (mixed experience, some beginners) in a 16-hour hackathon ("Secure AI HR System"). HR Buddy is an AI recruiting assistant that:
 - reads an HR inbox (application emails + CV attachments),
 - screens CVs through a security gate (file checks, hidden-text and prompt-injection detection),
 - anonymizes and scores candidates against an HR-approved job rubric, with quoted evidence,

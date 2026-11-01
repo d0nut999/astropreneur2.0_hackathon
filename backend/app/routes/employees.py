@@ -23,8 +23,11 @@ def overview(db: Session = Depends(get_session)):
     pending_ids = {r["email_id"] for r in data["requests"] if r["email_id"]} | {r["email_id"] for r in data["recent"] if r["email_id"]}
     drafts = db.exec(select(Draft).where(Draft.status == DraftStatus.PENDING, Draft.email_id != None)).all()  # noqa: E711
     emp_emails = {e.email for e in db.exec(select(Employee)).all()}
+    leave_email_ids = {r.email_id for r in db.exec(select(LeaveRequest)).all() if r.email_id}
     data["pending_replies"] = [d.model_dump(mode="json") for d in drafts
                                if d.email_id in pending_ids or d.to_addr in emp_emails]
+    data["leave_replies"] = [d for d in data["pending_replies"] if d["email_id"] in leave_email_ids]
+    data["question_replies"] = [d for d in data["pending_replies"] if d["email_id"] not in leave_email_ids]
     return data
 
 

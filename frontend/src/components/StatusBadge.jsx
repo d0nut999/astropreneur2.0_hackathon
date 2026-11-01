@@ -1,30 +1,28 @@
 /**
- * Status badge component.
+ * Status badge: soft color + dot, sentence case.
  */
-
-const statusColors = {
-  RECEIVED: 'bg-blue-100 text-blue-800',
-  SCREENED: 'bg-green-100 text-green-800',
-  SCORED: 'bg-purple-100 text-purple-800',
-  SHORTLISTED: 'bg-yellow-100 text-yellow-800',
-  INVITED: 'bg-indigo-100 text-indigo-800',
-  VIDEO_SUBMITTED: 'bg-cyan-100 text-cyan-800',
-  EVALUATED: 'bg-orange-100 text-orange-800',
-  DECIDED: 'bg-gray-100 text-gray-800',
-  QUARANTINED: 'bg-red-100 text-red-800',
-  pending: 'bg-yellow-100 text-yellow-800',
-  approved: 'bg-green-100 text-green-800',
-  rejected: 'bg-red-100 text-red-800',
-  sent: 'bg-blue-100 text-blue-800',
+const STYLES = {
+  RECEIVED: ['bg-slate-100 text-slate-700', 'bg-slate-400', 'Received'],
+  SCREENED: ['bg-slate-100 text-slate-700', 'bg-slate-400', 'Screened'],
+  SCORED: ['bg-brand-50 text-brand-700', 'bg-brand-500', 'Scored'],
+  SHORTLISTED: ['bg-amber-50 text-amber-800', 'bg-amber-500', 'Shortlisted'],
+  INVITED: ['bg-sky-50 text-sky-700', 'bg-sky-500', 'Invited'],
+  VIDEO_SUBMITTED: ['bg-violet-50 text-violet-700', 'bg-violet-500', 'Answered'],
+  EVALUATED: ['bg-orange-50 text-orange-700', 'bg-orange-500', 'Evaluated'],
+  DECIDED: ['bg-emerald-50 text-emerald-700', 'bg-emerald-500', 'Decided'],
+  QUARANTINED: ['bg-rose-50 text-rose-700', 'bg-rose-500', 'Blocked'],
+  pending: ['bg-amber-50 text-amber-800', 'bg-amber-500', 'Pending'],
+  approved: ['bg-emerald-50 text-emerald-700', 'bg-emerald-500', 'Approved'],
+  rejected: ['bg-rose-50 text-rose-700', 'bg-rose-500', 'Rejected'],
+  sent: ['bg-emerald-50 text-emerald-700', 'bg-emerald-500', 'Sent'],
 }
 
-const labels = { VIDEO_SUBMITTED: 'ANSWERED' }
-
 export default function StatusBadge({ status }) {
-  const color = statusColors[status] || 'bg-gray-100 text-gray-800'
+  const [cls, dot, label] = STYLES[status] || ['bg-slate-100 text-slate-700', 'bg-slate-400', status]
   return (
-    <span className={`px-3 py-1 rounded-full text-sm font-medium ${color}`}>
-      {labels[status] || status}
+    <span className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-xs font-medium ${cls}`}>
+      <span className={`h-1.5 w-1.5 rounded-full ${dot}`} />
+      {label}
     </span>
   )
 }

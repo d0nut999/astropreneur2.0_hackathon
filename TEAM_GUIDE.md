@@ -1,4 +1,4 @@
-# HireGuard: Complete Project Structure & Task Guide
+# HR Buddy: Complete Project Structure & Task Guide
 
 **A secure AI recruiting assistant with mandatory human oversight.** This document describes the current codebase and how to divide work among team members.
 
@@ -19,7 +19,7 @@
 
 ## Project Overview
 
-**HireGuard** is a full-stack web application that:
+**HR Buddy** is a full-stack web application that:
 
 1. **Receives applications** (email with CV attachment)
 2. **Screens CVs** (security gate: detects hidden text, prompt injection)

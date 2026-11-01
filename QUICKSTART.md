@@ -1,4 +1,4 @@
-# HireGuard Quickstart (10 minutes)
+# HR Buddy Quickstart (10 minutes)
 
 ## 1. Start Services (1 minute)
 

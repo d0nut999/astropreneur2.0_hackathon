@@ -44,22 +44,20 @@ export default function DemoControls({ onReset }) {
   }
 
   return (
-    <div className="mt-8 bg-white rounded-lg shadow p-4 flex flex-wrap items-center gap-3 text-sm">
-      <span className="font-semibold text-gray-700">Demo controls</span>
+    <div className="mt-8 flex flex-wrap items-center gap-3 rounded-xl border border-dashed border-slate-300 bg-white/60 px-4 py-3 text-sm">
+      <span className="eyebrow">Demo controls</span>
       {status && (
-        <span className={`rounded-full px-3 py-1 ${status.ai_configured ? 'bg-green-50 text-green-800' : 'bg-amber-50 text-amber-800'}`}>
+        <span className={`chip ${status.ai_configured ? 'bg-emerald-50 text-emerald-700' : 'bg-amber-50 text-amber-800'}`}>
+          <span className={`h-1.5 w-1.5 rounded-full ${status.ai_configured ? 'bg-emerald-500' : 'bg-amber-500'}`} />
           {status.ai_configured ? `AI: ${status.ai_model} (${status.ai_provider})` : 'AI not configured: offline rules'}
         </span>
       )}
-      <button onClick={testAi} disabled={!!busy} className="px-3 py-1.5 rounded border border-gray-300 hover:bg-gray-50 disabled:opacity-50">
-        {busy === 'ai' ? 'Testing…' : 'Test AI connection'}
-      </button>
-      <button onClick={reset} disabled={!!busy}
-        className={`px-3 py-1.5 rounded disabled:opacity-50 ${confirm ? 'bg-red-600 text-white hover:bg-red-700' : 'border border-red-300 text-red-700 hover:bg-red-50'}`}>
+      <button onClick={testAi} disabled={!!busy} className="btn-secondary btn-sm">{busy === 'ai' ? 'Testing…' : 'Test AI connection'}</button>
+      <button onClick={reset} disabled={!!busy} className={confirm ? 'btn btn-sm bg-rose-600 text-white hover:bg-rose-700' : 'btn-danger btn-sm'}>
         {busy === 'reset' ? 'Resetting & reloading emails…' : confirm ? 'Click again to confirm reset' : 'Reset demo'}
       </button>
-      {confirm && <button onClick={() => setConfirm(false)} className="text-gray-500 hover:underline">cancel</button>}
-      {msg && <span className={msg.ok ? 'text-green-700' : 'text-red-700'}>{msg.text}</span>}
+      {confirm && <button onClick={() => setConfirm(false)} className="btn-ghost btn-sm">Cancel</button>}
+      {msg && <span className={msg.ok ? 'text-emerald-700' : 'text-rose-700'}>{msg.text}</span>}
     </div>
   )
 }

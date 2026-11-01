@@ -2,10 +2,10 @@
  * Urgency badge: urgent / normal / low / flagged.
  */
 const styles = {
-  urgent: { cls: 'bg-red-100 text-red-800 ring-red-200', label: 'Urgent', dot: 'bg-red-500' },
+  urgent: { cls: 'bg-rose-100 text-rose-800 ring-rose-200', label: 'Urgent', dot: 'bg-rose-500' },
   flagged: { cls: 'bg-amber-100 text-amber-900 ring-amber-300', label: 'Suspicious', dot: 'bg-amber-500' },
-  normal: { cls: 'bg-blue-50 text-blue-800 ring-blue-200', label: 'Normal', dot: 'bg-blue-400' },
-  low: { cls: 'bg-gray-100 text-gray-600 ring-gray-200', label: 'Low', dot: 'bg-gray-400' },
+  normal: { cls: 'bg-brand-50 text-brand-800 ring-brand-200', label: 'Normal', dot: 'bg-brand-400' },
+  low: { cls: 'bg-slate-100 text-slate-600 ring-slate-200', label: 'Low', dot: 'bg-slate-400' },
 }
 
 export default function UrgencyBadge({ urgency, small = false }) {

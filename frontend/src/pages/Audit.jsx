@@ -25,13 +25,13 @@ export default function Audit() {
     load()
   }, [])
 
-  if (loading) return <div className="text-center text-gray-500">Loading...</div>
+  if (loading) return <div className="text-center text-slate-500">Loading...</div>
   if (forbidden) {
     return (
-      <div className="max-w-xl mx-auto bg-white rounded-lg shadow p-8 text-center">
-        <p className="text-4xl mb-2">🔒</p>
-        <h1 className="text-xl font-semibold text-gray-900 mb-2">Admins only</h1>
-        <p className="text-gray-600">
+      <div className="card max-w-xl mx-auto p-8 text-center">
+        <p className="text-4xl mb-2"></p>
+        <h1 className="text-xl font-semibold text-slate-900 mb-2">Admins only</h1>
+        <p className="text-slate-600">
           The audit log records every action, including yours. To keep it independent, only an administrator can read it.
           Your actions are still recorded.
         </p>
@@ -41,32 +41,32 @@ export default function Audit() {
 
   return (
     <div>
-      <h1 className="text-3xl font-bold mb-6">Audit Log</h1>
+      <h1 className="page-title mb-6">Audit Log</h1>
 
-      <div className="overflow-x-auto bg-white rounded-lg shadow">
+      <div className="card overflow-x-auto">
         <table className="w-full">
-          <thead className="bg-gray-100">
+          <thead className="bg-slate-100">
             <tr>
-              <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700">
+              <th className="px-4 py-3 text-left text-sm font-semibold text-slate-700">
                 Timestamp
               </th>
-              <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700">
+              <th className="px-4 py-3 text-left text-sm font-semibold text-slate-700">
                 Actor
               </th>
-              <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700">
+              <th className="px-4 py-3 text-left text-sm font-semibold text-slate-700">
                 Action
               </th>
-              <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700">
+              <th className="px-4 py-3 text-left text-sm font-semibold text-slate-700">
                 Entity
               </th>
-              <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700">
+              <th className="px-4 py-3 text-left text-sm font-semibold text-slate-700">
                 Hash
               </th>
             </tr>
           </thead>
           <tbody>
             {logs.map((log) => (
-              <tr key={log.id} className="border-t hover:bg-gray-50">
+              <tr key={log.id} className="border-t hover:bg-slate-50">
                 <td className="px-4 py-3 text-sm">
                   {new Date(log.timestamp).toLocaleString()}
                 </td>
@@ -75,7 +75,7 @@ export default function Audit() {
                 <td className="px-4 py-3 text-sm">
                   {log.entity} (ID: {log.entity_id})
                 </td>
-                <td className="px-4 py-3 text-sm text-gray-600 font-mono text-xs">
+                <td className="px-4 py-3 text-sm text-slate-600 font-mono text-xs">
                   {log.payload_hash.substring(0, 12)}...
                 </td>
               </tr>
@@ -85,7 +85,7 @@ export default function Audit() {
       </div>
 
       {logs.length === 0 && (
-        <p className="text-gray-500 mt-4">No audit logs.</p>
+        <p className="text-slate-500 mt-4">No audit logs.</p>
       )}
     </div>
   )

@@ -17,7 +17,7 @@ const minutesOf = (s) => {
 }
 
 const STYLE = {
-  interview: 'bg-indigo-600 text-white border-indigo-700',
+  interview: 'bg-brand-600 text-white border-brand-700',
   confirmed: 'bg-emerald-500 text-white border-emerald-600',
   suggested: 'bg-white text-emerald-900 border-emerald-500 border-dashed',
 }
@@ -74,7 +74,7 @@ export default function Calendar() {
       </div>
     )
   }
-  if (!data) return <div className="text-center text-gray-500">{msg || 'Loading…'}</div>
+  if (!data) return <div className="text-center text-slate-500">{msg || 'Loading…'}</div>
 
   const { hours, lunch } = data
   const height = (hours.end - hours.start) * HOUR_PX
@@ -92,50 +92,50 @@ export default function Calendar() {
       {/* Week navigation + summary */}
       <div className="flex flex-wrap items-center justify-between gap-3 mb-3">
         <div className="flex items-center gap-2">
-          <button onClick={() => shift(-1)} className="px-3 py-1.5 rounded border bg-white hover:bg-gray-50">◀</button>
-          <button onClick={() => setDay(iso(new Date()))} className="px-3 py-1.5 rounded border bg-white hover:bg-gray-50 text-sm">Today</button>
-          <button onClick={() => shift(1)} className="px-3 py-1.5 rounded border bg-white hover:bg-gray-50">▶</button>
+          <button onClick={() => shift(-1)} className="btn-secondary">◀</button>
+          <button onClick={() => setDay(iso(new Date()))} className="btn-secondary">Today</button>
+          <button onClick={() => shift(1)} className="btn-secondary">▶</button>
           <span className="ml-2 font-semibold">{weekLabel}</span>
         </div>
         <div className="flex flex-wrap gap-2 text-sm">
-          <Chip color="bg-indigo-100 text-indigo-800">🤝 {s.interviews} interview{s.interviews !== 1 && 's'}</Chip>
-          <Chip color="bg-emerald-100 text-emerald-800">📅 {s.meetings} meeting{s.meetings !== 1 && 's'}</Chip>
-          <Chip color="bg-yellow-100 text-yellow-800">{s.to_confirm} to confirm</Chip>
-          <Chip color="bg-orange-100 text-orange-800">⏰ {s.deadlines} deadline{s.deadlines !== 1 && 's'}</Chip>
-          <Chip color="bg-green-50 text-green-800 ring-1 ring-green-200">{s.free_interview_spots} free interview spot{s.free_interview_spots !== 1 && 's'}</Chip>
-          {s.clashes > 0 && <Chip color="bg-red-100 text-red-800">⚠ {s.clashes} clash{s.clashes > 1 && 'es'}</Chip>}
+          <Chip color="bg-brand-100 text-brand-800">{s.interviews} interview{s.interviews !== 1 && 's'}</Chip>
+          <Chip color="bg-emerald-100 text-emerald-800">{s.meetings} meeting{s.meetings !== 1 && 's'}</Chip>
+          <Chip color="bg-amber-100 text-amber-800">{s.to_confirm} to confirm</Chip>
+          <Chip color="bg-orange-100 text-orange-800">{s.deadlines} deadline{s.deadlines !== 1 && 's'}</Chip>
+          <Chip color="bg-emerald-50 text-emerald-800 ring-1 ring-emerald-200">{s.free_interview_spots} free interview spot{s.free_interview_spots !== 1 && 's'}</Chip>
+          {s.clashes > 0 && <Chip color="bg-rose-100 text-rose-800">{s.clashes} clash{s.clashes > 1 && 'es'}</Chip>}
         </div>
       </div>
 
-      {msg && <div className="mb-3 rounded bg-red-50 border border-red-200 px-3 py-2 text-sm text-red-800">{msg}</div>}
+      {msg && <div className="mb-3 rounded bg-rose-50 border border-rose-200 px-3 py-2 text-sm text-rose-800">{msg}</div>}
 
-      <div className="bg-white rounded-lg shadow overflow-hidden">
+      <div className="card overflow-hidden">
         {/* Day headers */}
         <div className="grid border-b" style={{ gridTemplateColumns: `56px repeat(${visibleDays.length}, 1fr)` }}>
           <div />
           {visibleDays.map((d) => (
-            <div key={d.date} className={`px-2 py-2 text-center border-l ${d.is_today ? 'bg-blue-50' : ''}`}>
-              <div className="text-xs uppercase text-gray-500">{d.weekday.slice(0, 3)}</div>
-              <div className={`text-lg font-semibold ${d.is_today ? 'text-blue-700' : ''}`}>{Number(d.date.slice(8))}</div>
+            <div key={d.date} className={`px-2 py-2 text-center border-l ${d.is_today ? 'bg-brand-50' : ''}`}>
+              <div className="text-xs uppercase text-slate-500">{d.weekday.slice(0, 3)}</div>
+              <div className={`text-lg font-semibold ${d.is_today ? 'text-brand-700' : ''}`}>{Number(d.date.slice(8))}</div>
             </div>
           ))}
         </div>
 
         {/* All-day row (deadlines, meetings without time) */}
-        <div className="grid border-b bg-gray-50" style={{ gridTemplateColumns: `56px repeat(${visibleDays.length}, 1fr)` }}>
-          <div className="text-[10px] text-gray-400 px-1 py-1">all day</div>
+        <div className="grid border-b bg-slate-50" style={{ gridTemplateColumns: `56px repeat(${visibleDays.length}, 1fr)` }}>
+          <div className="text-[10px] text-slate-400 px-1 py-1">all day</div>
           {visibleDays.map((d) => (
             <div key={d.date} className="border-l p-1 min-h-[30px] space-y-1">
               {d.away?.length > 0 && (
                 <Link to="/employees" title={d.away.map((a) => a.title).join('\n')}
                   className="block w-full text-left text-xs rounded px-1.5 py-0.5 truncate bg-teal-50 text-teal-800 border border-teal-200 hover:bg-teal-100">
-                  🌴 {d.away.length} away
+                  {d.away.length} away
                 </Link>
               )}
               {data.all_day.filter((a) => a.date === d.date).map((a) => (
                 <button key={a.id} onClick={() => setSelected({ ...a })}
                   className={`block w-full text-left text-xs rounded px-1.5 py-0.5 truncate border ${a.status === 'confirmed' ? 'bg-orange-500 text-white border-orange-600' : 'bg-white text-orange-800 border-orange-400 border-dashed'}`}>
-                  ⏰ {a.title}
+                  {a.title}
                 </button>
               ))}
             </div>
@@ -146,7 +146,7 @@ export default function Calendar() {
         <div className="grid relative" style={{ gridTemplateColumns: `56px repeat(${visibleDays.length}, 1fr)` }}>
           <div className="relative" style={{ height }}>
             {Array.from({ length: hours.end - hours.start }, (_, i) => (
-              <div key={i} className="absolute right-1 text-[11px] text-gray-400" style={{ top: i * HOUR_PX - 6 }}>
+              <div key={i} className="absolute right-1 text-[11px] text-slate-400" style={{ top: i * HOUR_PX - 6 }}>
                 {String(hours.start + i).padStart(2, '0')}:00
               </div>
             ))}
@@ -157,30 +157,30 @@ export default function Calendar() {
             const isNowDay = d.date === iso(now)
             const nowMin = now.getHours() * 60 + now.getMinutes()
             return (
-              <div key={d.date} className={`relative border-l ${d.is_work_day ? '' : 'bg-gray-50'}`} style={{ height }}>
+              <div key={d.date} className={`relative border-l ${d.is_work_day ? '' : 'bg-slate-50'}`} style={{ height }}>
                 {/* hour lines */}
                 {Array.from({ length: hours.end - hours.start }, (_, i) => (
-                  <div key={i} className="absolute left-0 right-0 border-t border-gray-100" style={{ top: i * HOUR_PX }} />
+                  <div key={i} className="absolute left-0 right-0 border-t border-slate-100" style={{ top: i * HOUR_PX }} />
                 ))}
                 {/* interview blocks */}
                 {d.blocks.map((b, i) => {
                   const t = top(Number(b.start.slice(0, 2)) * 60)
                   const h = top(Number(b.end.slice(0, 2)) * 60) - t
                   return (
-                    <div key={i} className="absolute left-0 right-0 bg-green-50 border-y border-green-200" style={{ top: t, height: h }}>
-                      <span className="absolute top-0.5 right-1 text-[10px] text-green-700">interview block</span>
+                    <div key={i} className="absolute left-0 right-0 bg-emerald-50 border-y border-emerald-200" style={{ top: t, height: h }}>
+                      <span className="absolute top-0.5 right-1 text-[10px] text-emerald-700">interview block</span>
                     </div>
                   )
                 })}
                 {/* lunch */}
                 {d.is_work_day && (
-                  <div className="absolute left-0 right-0 bg-gray-100/80 flex items-center justify-center text-[10px] text-gray-400"
+                  <div className="absolute left-0 right-0 bg-slate-100/80 flex items-center justify-center text-[10px] text-slate-400"
                     style={{ top: top(lunch.start * 60), height: (lunch.end - lunch.start) * HOUR_PX }}>lunch</div>
                 )}
                 {/* free interview spots */}
                 {free.map((f) => (
                   <button key={f} onClick={() => setSelected({ kind: 'free', start: f })}
-                    className="absolute left-1 right-1 rounded border border-dashed border-green-400 text-[10px] text-green-700 hover:bg-green-100"
+                    className="absolute left-1 right-1 rounded border border-dashed border-emerald-400 text-[10px] text-emerald-700 hover:bg-emerald-100"
                     style={{ top: top(minutesOf(f)) + 2, height: HOUR_PX - 4 }}>
                     free · {hm(f)}
                   </button>
@@ -191,11 +191,11 @@ export default function Calendar() {
                   const w = 100 / it.laneCount
                   return (
                     <button key={it.id} onClick={() => { setSelected(it); setClash('') }}
-                      className={`absolute rounded-md border-2 px-1.5 py-1 text-left overflow-hidden shadow-sm hover:shadow ${cls} ${it.conflict ? 'ring-2 ring-red-500' : ''}`}
+                      className={`absolute rounded-md border-2 px-1.5 py-1 text-left overflow-hidden shadow-sm hover:shadow ${cls} ${it.conflict ? 'ring-2 ring-rose-500' : ''}`}
                       style={{ top: top(minutesOf(it.start)) + 1, height: Math.max(26, ((minutesOf(it.end) - minutesOf(it.start)) / 60) * HOUR_PX - 3),
                                left: `calc(${it.lane * w}% + 3px)`, width: `calc(${w}% - 6px)` }}>
                       <div className="text-[11px] font-semibold leading-tight truncate">
-                        {it.conflict && '⚠ '}{hm(it.start)} {it.kind === 'interview' ? '🤝' : '📅'} {it.title}
+                        {it.conflict && ''}{hm(it.start)} {it.kind === 'interview' ? '' : ''} {it.title}
                       </div>
                       <div className="text-[10px] leading-tight truncate opacity-90">{it.who}</div>
                     </button>
@@ -203,8 +203,8 @@ export default function Calendar() {
                 })}
                 {/* now line */}
                 {isNowDay && nowMin >= hours.start * 60 && nowMin <= hours.end * 60 && (
-                  <div className="absolute left-0 right-0 border-t-2 border-red-500 z-10" style={{ top: top(nowMin) }}>
-                    <span className="absolute -left-1 -top-1.5 h-3 w-3 rounded-full bg-red-500" />
+                  <div className="absolute left-0 right-0 border-t-2 border-rose-500 z-10" style={{ top: top(nowMin) }}>
+                    <span className="absolute -left-1 -top-1.5 h-3 w-3 rounded-full bg-rose-500" />
                   </div>
                 )}
               </div>
@@ -214,19 +214,19 @@ export default function Calendar() {
       </div>
 
       {/* Legend */}
-      <div className="flex flex-wrap gap-4 mt-3 text-xs text-gray-600">
-        <span><span className="inline-block w-3 h-3 rounded bg-indigo-600 align-middle mr-1" />Interview booked</span>
+      <div className="flex flex-wrap gap-4 mt-3 text-xs text-slate-600">
+        <span><span className="inline-block w-3 h-3 rounded bg-brand-600 align-middle mr-1" />Interview booked</span>
         <span><span className="inline-block w-3 h-3 rounded bg-emerald-500 align-middle mr-1" />Meeting confirmed</span>
         <span><span className="inline-block w-3 h-3 rounded border-2 border-dashed border-emerald-500 align-middle mr-1" />Meeting to confirm (from an email)</span>
-        <span><span className="inline-block w-3 h-3 rounded bg-green-50 border border-green-300 align-middle mr-1" />Interview block (free spots dashed)</span>
-        <span><span className="inline-block w-3 h-3 rounded ring-2 ring-red-500 align-middle mr-1" />Clash</span>
-        <span className="text-gray-400">Interview blocks: {data.settings.blocks_text} · max {data.settings.max_interviews_per_day} interviews/day</span>
+        <span><span className="inline-block w-3 h-3 rounded bg-emerald-50 border border-emerald-300 align-middle mr-1" />Interview block (free spots dashed)</span>
+        <span><span className="inline-block w-3 h-3 rounded ring-2 ring-rose-500 align-middle mr-1" />Clash</span>
+        <span className="text-slate-400">Interview blocks: {data.settings.blocks_text} · max {data.settings.max_interviews_per_day} interviews/day</span>
       </div>
 
       {/* Detail panel */}
       {selected && (
         <div className="fixed top-0 right-0 h-full w-96 max-w-full bg-white shadow-2xl z-30 p-6 overflow-y-auto border-l">
-          <button onClick={() => setSelected(null)} className="absolute top-3 right-4 text-gray-400 hover:text-gray-700 text-xl">×</button>
+          <button onClick={() => setSelected(null)} className="absolute top-3 right-4 text-slate-400 hover:text-slate-700 text-xl">×</button>
           <Detail item={selected} decide={decide} clash={clash} />
         </div>
       )}
@@ -238,13 +238,13 @@ function Header({ view, setView }) {
   return (
     <div className="flex items-center justify-between mb-4">
       <div>
-        <h1 className="text-3xl font-bold">Calendar</h1>
-        <p className="text-gray-500 text-sm">Interviews, meetings found in emails, deadlines, and free interview spots.</p>
+        <h1 className="page-title">Calendar</h1>
+        <p className="text-slate-500 text-sm">Interviews, meetings found in emails, deadlines, and free interview spots.</p>
       </div>
       <div className="flex rounded-lg border bg-white overflow-hidden text-sm">
         {['week', 'list'].map((v) => (
           <button key={v} onClick={() => setView(v)}
-            className={`px-4 py-2 capitalize ${view === v ? 'bg-gray-900 text-white' : 'hover:bg-gray-50'}`}>{v}</button>
+            className={`px-4 py-2 capitalize ${view === v ? 'bg-slate-900 text-white' : 'hover:bg-slate-50'}`}>{v}</button>
         ))}
       </div>
     </div>
@@ -263,49 +263,49 @@ function Detail({ item, decide, clash }) {
   if (item.kind === 'free') {
     return (
       <div>
-        <p className="text-xs uppercase text-green-700 mb-1">Free interview spot</p>
+        <p className="text-xs uppercase text-emerald-700 mb-1">Free interview spot</p>
         <h2 className="text-xl font-semibold mb-2">{when}</h2>
-        <p className="text-sm text-gray-600">Inside an interview block and free. Candidates with a scheduling link can book it — first come, first served.</p>
+        <p className="text-sm text-slate-600">Inside an interview block and free. Candidates with a scheduling link can book it — first come, first served.</p>
       </div>
     )
   }
   return (
     <div>
-      <p className="text-xs uppercase text-gray-500 mb-1">
-        {item.kind === 'interview' ? '🤝 Interview · booked' : item.kind === 'deadline' ? `⏰ Deadline · ${item.status}` : `📅 Meeting · ${item.status === 'suggested' ? 'to confirm' : item.status}`}
+      <p className="text-xs uppercase text-slate-500 mb-1">
+        {item.kind === 'interview' ? 'Interview · booked' : item.kind === 'deadline' ? `Deadline · ${item.status}` : `Meeting · ${item.status === 'suggested' ? 'to confirm' : item.status}`}
       </p>
       <h2 className="text-xl font-semibold mb-1">{item.title}</h2>
-      <p className="text-gray-700 mb-4">{when}{item.end && ` – ${hm(item.end)}`}</p>
+      <p className="text-slate-700 mb-4">{when}{item.end && ` – ${hm(item.end)}`}</p>
 
-      {item.conflict && <p className="text-sm bg-red-50 text-red-800 rounded p-2 mb-3">⚠ {item.conflict}</p>}
+      {item.conflict && <p className="text-sm bg-rose-50 text-rose-800 rounded p-2 mb-3">{item.conflict}</p>}
 
       <dl className="text-sm space-y-2 mb-5">
-        {item.who && <div><dt className="text-gray-500 text-xs">With</dt><dd>{item.who}</dd></div>}
-        {item.job && <div><dt className="text-gray-500 text-xs">Position</dt><dd>{item.job}</dd></div>}
-        {item.location && <div><dt className="text-gray-500 text-xs">Where</dt><dd>{item.location}</dd></div>}
-        {item.email_subject && <div><dt className="text-gray-500 text-xs">Found in the email</dt><dd>"{item.email_subject}" — {item.email_from}</dd></div>}
+        {item.who && <div><dt className="text-slate-500 text-xs">With</dt><dd>{item.who}</dd></div>}
+        {item.job && <div><dt className="text-slate-500 text-xs">Position</dt><dd>{item.job}</dd></div>}
+        {item.location && <div><dt className="text-slate-500 text-xs">Where</dt><dd>{item.location}</dd></div>}
+        {item.email_subject && <div><dt className="text-slate-500 text-xs">Found in the email</dt><dd>"{item.email_subject}" — {item.email_from}</dd></div>}
       </dl>
 
       <div className="flex flex-col gap-2">
         {item.kind === 'interview' && (
           <>
-            <Link to={`/candidates/${item.application_id}`} className="px-3 py-2 rounded bg-indigo-600 text-white text-sm text-center hover:bg-indigo-700">Open candidate</Link>
-            <a href={`${baseURL}/candidates/${item.application_id}/interview.ics`} className="px-3 py-2 rounded border text-sm text-center hover:bg-gray-50">Download calendar file (.ics)</a>
+            <Link to={`/candidates/${item.application_id}`} className="btn-primary text-center">Open candidate</Link>
+            <a href={`${baseURL}/candidates/${item.application_id}/interview.ics`} className="btn-secondary text-center">Download calendar file (.ics)</a>
           </>
         )}
         {item.event_id && item.status === 'suggested' && (
           <>
-            <button onClick={() => decide(item.event_id, 'confirm')} className="px-3 py-2 rounded bg-green-600 text-white text-sm hover:bg-green-700">Confirm</button>
-            <button onClick={() => decide(item.event_id, 'dismiss')} className="px-3 py-2 rounded border text-sm hover:bg-gray-50">Dismiss</button>
+            <button onClick={() => decide(item.event_id, 'confirm')} className="btn-success">Confirm</button>
+            <button onClick={() => decide(item.event_id, 'dismiss')} className="btn-secondary">Dismiss</button>
           </>
         )}
         {clash && (
-          <div className="text-sm bg-red-50 border border-red-200 rounded p-2 text-red-800">
+          <div className="text-sm bg-rose-50 border border-rose-200 rounded p-2 text-rose-800">
             {clash}
             <button onClick={() => decide(item.event_id, 'confirm', true)} className="block mt-1 underline">Confirm anyway</button>
           </div>
         )}
-        {item.email_id && <Link to={`/inbox?id=${item.email_id}`} className="px-3 py-2 rounded border text-sm text-center hover:bg-gray-50">Open the email</Link>}
+        {item.email_id && <Link to={`/inbox?id=${item.email_id}`} className="btn-secondary text-center">Open the email</Link>}
       </div>
     </div>
   )

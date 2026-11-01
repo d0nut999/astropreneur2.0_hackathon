@@ -50,7 +50,7 @@ class Settings(BaseSettings):
     # Follow-ups: remind candidates who did not answer (HR approves every reminder)
     followup_after_hours: int = 48      # a reminder becomes "due" after this much silence
     followup_max_reminders: int = 2     # after that, HR decides (e.g. close the application)
-    # Job posts: where candidates apply (the inbox HireGuard reads)
+    # Job posts: where candidates apply (the inbox HR Buddy reads)
     hr_contact_email: str = "hr@fictional-company.test"
     company_name: str = "Fictional Company"
     # Employees & leave (fictional company policy, see demo_data/handbook.md)

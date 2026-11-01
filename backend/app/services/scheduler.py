@@ -330,7 +330,7 @@ def ics_for(slot: InterviewSlot, title: str) -> str:
     fmt = "%Y%m%dT%H%M%S"
     safe_title = re.sub(r"[\r\n,;]", " ", title)
     return "\r\n".join([
-        "BEGIN:VCALENDAR", "VERSION:2.0", "PRODID:-//HireGuard//Interview//EN", "BEGIN:VEVENT",
+        "BEGIN:VCALENDAR", "VERSION:2.0", "PRODID:-//HR Buddy//Interview//EN", "BEGIN:VEVENT",
         f"UID:hireguard-interview-{slot.id}@fictional-company.test",
         f"DTSTAMP:{datetime.now().strftime(fmt)}",
         f"DTSTART:{slot.start.strftime(fmt)}", f"DTEND:{slot.end.strftime(fmt)}",

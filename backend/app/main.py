@@ -20,7 +20,7 @@ def create_app() -> FastAPI:
 
     # Create app
     app = FastAPI(
-        title="HireGuard",
+        title="HR Buddy",
         description="AI recruiting assistant with human oversight",
         version="0.1.0",
     )

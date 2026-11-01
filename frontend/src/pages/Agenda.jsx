@@ -8,11 +8,11 @@ import { apiGet, apiPost } from '../api'
 import { prettyDate } from '../utils/format'
 
 const STATUS_STYLE = {
-  suggested: 'bg-yellow-50 text-yellow-800 ring-yellow-200',
-  booked: 'bg-indigo-50 text-indigo-800 ring-indigo-200',
-  reserved: 'bg-indigo-50 text-indigo-600 ring-indigo-100',
-  confirmed: 'bg-green-50 text-green-800 ring-green-200',
-  dismissed: 'bg-gray-100 text-gray-500 ring-gray-200',
+  suggested: 'bg-amber-50 text-amber-800 ring-amber-200',
+  booked: 'bg-brand-50 text-brand-800 ring-brand-200',
+  reserved: 'bg-brand-50 text-brand-600 ring-brand-100',
+  confirmed: 'bg-emerald-50 text-emerald-800 ring-emerald-200',
+  dismissed: 'bg-slate-100 text-slate-500 ring-slate-200',
 }
 
 export default function Agenda({ embedded = false }) {
@@ -50,7 +50,7 @@ export default function Agenda({ embedded = false }) {
     }
   }
 
-  if (loading) return <div className="text-center text-gray-500">Loading…</div>
+  if (loading) return <div className="text-center text-slate-500">Loading…</div>
 
   const visible = events.filter((ev) => showDismissed || ev.status !== 'dismissed')
   const groups = visible.reduce((acc, ev) => {
@@ -64,26 +64,26 @@ export default function Agenda({ embedded = false }) {
       {!embedded && (
       <div className="flex items-center justify-between mb-6">
         <div>
-          <h1 className="text-3xl font-bold">Agenda</h1>
-          <p className="text-gray-500 text-sm">Meetings and deadlines found in your emails. Confirm the ones you accept.</p>
+          <h1 className="page-title">Agenda</h1>
+          <p className="text-slate-500 text-sm">Meetings and deadlines found in your emails. Confirm the ones you accept.</p>
         </div>
-        <label className="text-sm text-gray-600 flex items-center gap-2">
+        <label className="text-sm text-slate-600 flex items-center gap-2">
           <input type="checkbox" checked={showDismissed} onChange={(e) => setShowDismissed(e.target.checked)} />
           Show dismissed
         </label>
       </div>
       )}
       {embedded && (
-        <label className="text-sm text-gray-600 flex items-center gap-2 mb-4">
+        <label className="text-sm text-slate-600 flex items-center gap-2 mb-4">
           <input type="checkbox" checked={showDismissed} onChange={(e) => setShowDismissed(e.target.checked)} />
           Show dismissed
         </label>
       )}
 
-      {error && <div className="mb-4 rounded bg-red-50 border border-red-200 px-4 py-2 text-sm text-red-800">{error}</div>}
+      {error && <div className="mb-4 rounded bg-rose-50 border border-rose-200 px-4 py-2 text-sm text-rose-800">{error}</div>}
 
       {visible.length === 0 && (
-        <p className="text-gray-500">Nothing yet. Load emails from the <Link to="/inbox" className="text-blue-600 hover:underline">Inbox</Link>.</p>
+        <p className="text-slate-500">Nothing yet. Load emails from the <Link to="/inbox" className="text-brand-600 hover:underline">Inbox</Link>.</p>
       )}
 
       <div className="space-y-6">
@@ -92,28 +92,28 @@ export default function Agenda({ embedded = false }) {
             <h2 className="text-lg font-semibold mb-2">{prettyDate(date === 'No date' ? null : date)}</h2>
             <div className="space-y-2">
               {list.map((ev) => (
-                <div key={ev.id} className="bg-white rounded-lg shadow p-4 flex items-center gap-4">
+                <div key={ev.id} className="card p-4 flex items-center gap-4">
                   <div className="w-16 text-center">
-                    <div className="text-2xl">{ev.type === 'interview' ? '🤝' : ev.type === 'meeting' ? '📅' : '⏰'}</div>
-                    <div className="text-sm font-semibold text-gray-700">{ev.time || (ev.type === 'deadline' ? 'Due' : '')}</div>
+                    <div className="text-2xl">{ev.type === 'interview' ? '' : ev.type === 'meeting' ? '' : ''}</div>
+                    <div className="text-sm font-semibold text-slate-700">{ev.time || (ev.type === 'deadline' ? 'Due' : '')}</div>
                   </div>
                   <div className="flex-1 min-w-0">
                     <div className="font-medium truncate">{ev.title}</div>
-                    <div className="text-sm text-gray-500 truncate">
+                    <div className="text-sm text-slate-500 truncate">
                       {ev.type === 'interview' ? (ev.status === 'reserved' ? 'Interview time reserved (waiting for the candidate)' : 'Interview booked') : ev.type === 'meeting' ? 'Meeting' : 'Deadline'}
                       {ev.location && ` · ${ev.location}`}
                       {ev.with_people?.length > 0 && ` · with ${ev.with_people.join(', ')}`}
                     </div>
                     {ev.type === 'interview' ? (
-                      <Link to={`/candidates/${ev.application_id}`} className="text-xs text-blue-600 hover:underline">Open candidate →</Link>
+                      <Link to={`/candidates/${ev.application_id}`} className="text-xs text-brand-600 hover:underline">Open candidate →</Link>
                     ) : (
-                      <Link to={`/inbox?id=${ev.email_id}`} className="text-xs text-blue-600 hover:underline">
+                      <Link to={`/inbox?id=${ev.email_id}`} className="text-xs text-brand-600 hover:underline">
                         From: {ev.email_from} — "{ev.email_subject}"
                       </Link>
                     )}
-                    {ev.conflict && <p className="text-xs text-red-700 mt-1">⚠ {ev.conflict}</p>}
+                    {ev.conflict && <p className="text-xs text-rose-700 mt-1">{ev.conflict}</p>}
                     {clash?.id === ev.id && (
-                      <div className="mt-2 text-sm bg-red-50 border border-red-200 rounded p-2 text-red-800">
+                      <div className="mt-2 text-sm bg-rose-50 border border-rose-200 rounded p-2 text-rose-800">
                         {clash.message}
                         <button onClick={() => decide(ev.id, 'confirm', true)} className="ml-2 underline">Confirm anyway</button>
                         <button onClick={() => setClash(null)} className="ml-2 underline">Cancel</button>
@@ -123,10 +123,10 @@ export default function Agenda({ embedded = false }) {
                   <span className={`px-2.5 py-1 rounded-full text-xs font-medium ring-1 ${STATUS_STYLE[ev.status]}`}>{ev.status}</span>
                   {ev.status === 'suggested' && (
                     <div className="flex gap-2">
-                      <button onClick={() => decide(ev.id, 'confirm')} className="px-3 py-1.5 rounded bg-green-600 text-white text-sm hover:bg-green-700">
+                      <button onClick={() => decide(ev.id, 'confirm')} className="btn-success">
                         Confirm
                       </button>
-                      <button onClick={() => decide(ev.id, 'dismiss')} className="px-3 py-1.5 rounded border border-gray-300 text-sm hover:bg-gray-50">
+                      <button onClick={() => decide(ev.id, 'dismiss')} className="btn-secondary">
                         Dismiss
                       </button>
                     </div>

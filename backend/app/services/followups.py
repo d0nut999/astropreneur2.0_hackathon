@@ -8,7 +8,7 @@ Rules (in code, no AI):
   - a reminder becomes DUE after `followup_after_hours` of silence since our last email
   - each reminder contains a NEW personal link (only hashes are stored, so old links cannot be re-sent);
     the new link only starts working when HR approves and sends the reminder
-  - after `followup_max_reminders` reminders, HireGuard stops suggesting reminders: HR decides
+  - after `followup_max_reminders` reminders, HR Buddy stops suggesting reminders: HR decides
     (for example: close the application with a polite email)
 Nothing is ever sent automatically: every reminder is a draft that HR approves.
 """

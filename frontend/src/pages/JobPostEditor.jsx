@@ -25,13 +25,13 @@ const toForm = (d) => ({ ...EMPTY, ...d, must_haves: (d.must_haves || []).join('
 function Field({ label, children, hint }) {
   return (
     <label className="block">
-      <span className="text-xs font-medium text-gray-600">{label}</span>
+      <span className="text-xs font-medium text-slate-600">{label}</span>
       {children}
-      {hint && <span className="block text-[11px] text-gray-400 mt-0.5">{hint}</span>}
+      {hint && <span className="block text-[11px] text-slate-400 mt-0.5">{hint}</span>}
     </label>
   )
 }
-const input = 'mt-1 w-full border rounded px-2 py-1.5 text-sm'
+const input = 'input mt-1'
 
 export default function JobPostEditor() {
   const { id } = useParams()
@@ -99,17 +99,17 @@ export default function JobPostEditor() {
 
   return (
     <div>
-      <Link to="/jobs" className="text-sm text-blue-600 hover:underline">← Jobs</Link>
+      <Link to="/jobs" className="text-sm text-brand-600 hover:underline">← Jobs</Link>
       <div className="flex flex-wrap items-end justify-between gap-3 mt-2 mb-6">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900">{post ? post.title : 'New job post'}</h1>
-          <p className="text-gray-600 mt-1">
-            You give the facts, the AI writes the text, HireGuard checks it, you publish. Contract details, salary and
+          <h1 className="page-title">{post ? post.title : 'New job post'}</h1>
+          <p className="text-slate-600 mt-1">
+            You give the facts, the AI writes the text, HR Buddy checks it, you publish. Contract details, salary and
             how to apply are written by code from your input, so they are always exact.
           </p>
         </div>
         {post && (
-          <span className={`px-3 py-1 rounded-full text-sm font-medium ${published ? 'bg-green-100 text-green-800' : post.status === 'closed' ? 'bg-gray-200 text-gray-700' : 'bg-yellow-100 text-yellow-800'}`}>
+          <span className={`px-3 py-1 rounded-full text-sm font-medium ${published ? 'bg-emerald-100 text-emerald-800' : post.status === 'closed' ? 'bg-slate-200 text-slate-700' : 'bg-amber-100 text-amber-800'}`}>
             {post.code} · {published ? 'Published' : post.status === 'closed' ? 'Closed' : 'Draft — not public'}
           </span>
         )}
@@ -117,10 +117,10 @@ export default function JobPostEditor() {
 
       <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
         {/* Key facts */}
-        <div className="lg:col-span-2 bg-white rounded-lg shadow p-5 space-y-3 h-fit">
+        <div className="card lg:col-span-2 p-5 space-y-3 h-fit">
           <div className="flex justify-between items-center">
-            <h2 className="font-semibold text-gray-900">1. Key facts</h2>
-            {!post && <button onClick={() => setForm(EXAMPLE)} className="text-xs text-blue-600 hover:underline">Fill an example</button>}
+            <h2 className="font-semibold text-slate-900">1. Key facts</h2>
+            {!post && <button onClick={() => setForm(EXAMPLE)} className="text-xs text-brand-600 hover:underline">Fill an example</button>}
           </div>
           <fieldset disabled={published} className="space-y-3">
             <Field label="Job title *"><input className={input} value={form.title} onChange={set('title')} /></Field>
@@ -165,79 +165,79 @@ export default function JobPostEditor() {
             <Field label="About the team (optional)"><textarea rows={2} className={input} value={form.about} onChange={set('about')} /></Field>
           </fieldset>
           {!published && (
-            <button onClick={generate} disabled={!!busy} className="w-full py-2 rounded-lg bg-blue-600 text-white font-medium hover:bg-blue-700 disabled:opacity-50">
-              {busy === 'generate' ? 'Writing…' : post ? '↻ Rewrite from these facts' : '✨ Write the job post'}
+            <button onClick={generate} disabled={!!busy} className="btn-primary w-full">
+              {busy === 'generate' ? 'Writing…' : post ? '↻ Rewrite from these facts' : 'Write the job post'}
             </button>
           )}
-          {err && !post && <p className="text-sm text-red-700">{err}</p>}
+          {err && !post && <p className="text-sm text-rose-700">{err}</p>}
         </div>
 
         {/* Draft, checks, publish */}
         <div className="lg:col-span-3 space-y-4">
           {!post ? (
-            <div className="bg-white rounded-lg shadow p-10 text-center text-gray-500">
+            <div className="card p-10 text-center text-slate-500">
               Fill the key facts and click <b>Write the job post</b>. Nothing is public until you click Publish.
             </div>
           ) : (
             <>
-              <div className="bg-white rounded-lg shadow p-5">
+              <div className="card p-5">
                 <div className="flex justify-between items-center mb-2">
-                  <h2 className="font-semibold text-gray-900">2. The post <span className="text-xs font-normal text-gray-500">· written by {post.generated_by === 'ai' ? 'AI (fact-checked)' : 'template (offline)'}</span></h2>
-                  {!published && dirty && <button onClick={save} disabled={!!busy} className="text-sm px-3 py-1 rounded border hover:bg-gray-50">{busy === 'save' ? 'Saving…' : 'Save & re-check'}</button>}
+                  <h2 className="font-semibold text-slate-900">2. The post <span className="text-xs font-normal text-slate-500">· written by {post.generated_by === 'ai' ? 'AI (fact-checked)' : 'template (offline)'}</span></h2>
+                  {!published && dirty && <button onClick={save} disabled={!!busy} className="btn-secondary">{busy === 'save' ? 'Saving…' : 'Save & re-check'}</button>}
                 </div>
                 <textarea value={text} onChange={(e) => setText(e.target.value)} readOnly={published} rows={22}
                   className="w-full border rounded p-3 text-sm font-mono leading-relaxed" />
               </div>
 
-              <div className="bg-white rounded-lg shadow p-5 space-y-3">
-                <h2 className="font-semibold text-gray-900">3. Checks {dirty && <span className="text-xs font-normal text-amber-700">(save to re-check your edits)</span>}</h2>
+              <div className="card p-5 space-y-3">
+                <h2 className="font-semibold text-slate-900">3. Checks {dirty && <span className="text-xs font-normal text-amber-700">(save to re-check your edits)</span>}</h2>
                 {c.fairness.length === 0 ? (
-                  <p className="text-sm text-green-700">✓ Inclusive wording: no age, gender, origin, family or appearance criteria found.</p>
+                  <p className="text-sm text-emerald-700">✓ Inclusive wording: no age, gender, origin, family or appearance criteria found.</p>
                 ) : (
                   <div className="rounded border border-amber-300 bg-amber-50 p-3">
-                    <p className="text-sm font-semibold text-amber-900 mb-2">⚠️ {c.fairness.length} wording issue{c.fairness.length > 1 ? 's' : ''} that could exclude candidates</p>
+                    <p className="text-sm font-semibold text-amber-900 mb-2">{c.fairness.length} wording issue{c.fairness.length > 1 ? 's' : ''} that could exclude candidates</p>
                     {c.fairness.map((f, i) => (
                       <div key={i} className="text-sm flex flex-wrap items-center gap-2 py-1">
                         <span className="font-mono bg-white border px-1.5 rounded">“{f.phrase}”</span>
-                        <span className="text-gray-700">{f.why} Suggestion: <i>{f.suggestion}</i></span>
+                        <span className="text-slate-700">{f.why} Suggestion: <i>{f.suggestion}</i></span>
                         {!published && <button onClick={() => applySuggestion(f)} className="text-xs px-2 py-0.5 rounded bg-white border border-amber-400 hover:bg-amber-100">Apply</button>}
                       </div>
                     ))}
                   </div>
                 )}
                 {c.excluded_from_scoring.length > 0 && (
-                  <p className="text-sm text-gray-700">🚫 Not used to score CVs: {c.excluded_from_scoring.map((e) => `“${e.point}”`).join(', ')} (fails the fairness check).</p>
+                  <p className="text-sm text-slate-700">Not used to score CVs: {c.excluded_from_scoring.map((e) => `“${e.point}”`).join(', ')} (fails the fairness check).</p>
                 )}
                 {c.removed_by_fact_check.length > 0 && (
-                  <p className="text-sm text-gray-700">✂️ Removed from the AI text because it contained numbers you did not give: {c.removed_by_fact_check.map((x) => `“${x}”`).join(', ')}</p>
+                  <p className="text-sm text-slate-700">Removed from the AI text because it contained numbers you did not give: {c.removed_by_fact_check.map((x) => `“${x}”`).join(', ')}</p>
                 )}
-                <p className={`text-sm ${c.contact_ok ? 'text-green-700' : 'text-red-700'}`}>
+                <p className={`text-sm ${c.contact_ok ? 'text-emerald-700' : 'text-rose-700'}`}>
                   {c.contact_ok ? '✓' : '✗'} How to apply: {post.contact_email} with code {post.code} (written by code; applications with this code go to this job).
                 </p>
-                <p className={`text-sm ${c.facts_ok ? 'text-green-700' : 'text-amber-700'}`}>
-                  {c.facts_ok ? '✓ Contract, salary and dates exactly as you entered them.' : '⚠ The details block was edited by hand: double-check contract, salary and dates.'}
+                <p className={`text-sm ${c.facts_ok ? 'text-emerald-700' : 'text-amber-700'}`}>
+                  {c.facts_ok ? '✓ Contract, salary and dates exactly as you entered them.' : 'The details block was edited by hand: double-check contract, salary and dates.'}
                 </p>
                 <div>
-                  <p className="text-xs uppercase tracking-wide text-gray-500 mb-1 mt-2">CV scoring criteria from your key points</p>
+                  <p className="text-xs uppercase tracking-wide text-slate-500 mb-1 mt-2">CV scoring criteria from your key points</p>
                   <div className="flex flex-wrap gap-2">
                     {post.rubric.map((r) => (
-                      <span key={r.key} className="text-xs bg-gray-100 text-gray-700 rounded px-2 py-1">{r.label} · {Math.round(r.weight)}%{r.must_have ? ' · must-have' : ''}</span>
+                      <span key={r.key} className="text-xs bg-slate-100 text-slate-700 rounded px-2 py-1">{r.label} · {Math.round(r.weight)}%{r.must_have ? ' · must-have' : ''}</span>
                     ))}
                   </div>
                 </div>
               </div>
 
-              <div className="bg-white rounded-lg shadow p-5">
-                <h2 className="font-semibold text-gray-900 mb-2">4. Publish</h2>
+              <div className="card p-5">
+                <h2 className="font-semibold text-slate-900 mb-2">4. Publish</h2>
                 {published ? (
                   <div className="space-y-2">
-                    <p className="text-sm text-green-800">✓ Published. Candidates apply to {post.contact_email}; their CVs arrive in the Inbox and are scored for this job.</p>
+                    <p className="text-sm text-emerald-800">✓ Published. Candidates apply to {post.contact_email}; their CVs arrive in the Inbox and are scored for this job.</p>
                     <div className="flex flex-wrap gap-2 items-center">
-                      <a href={publicUrl} target="_blank" rel="noreferrer" className="text-sm text-blue-600 hover:underline break-all">{publicUrl} ↗</a>
+                      <a href={publicUrl} target="_blank" rel="noreferrer" className="text-sm text-brand-600 hover:underline break-all">{publicUrl} ↗</a>
                       <button onClick={() => { navigator.clipboard?.writeText(post.text); setCopied(true); setTimeout(() => setCopied(false), 1500) }}
-                        className="text-sm px-3 py-1 rounded border hover:bg-gray-50">{copied ? 'Copied ✓' : 'Copy text (LinkedIn, job boards)'}</button>
-                      <Link to={`/jobs/${post.job_id}`} className="text-sm px-3 py-1 rounded border hover:bg-gray-50">Candidates →</Link>
-                      <button onClick={() => run('close', () => apiPost(`/jobs/${post.job_id}/post/close`))} className="text-sm px-3 py-1 rounded border border-red-300 text-red-700 hover:bg-red-50">Close the post</button>
+                        className="btn-secondary">{copied ? 'Copied ✓' : 'Copy text (LinkedIn, job boards)'}</button>
+                      <Link to={`/jobs/${post.job_id}`} className="btn-secondary">Candidates →</Link>
+                      <button onClick={() => run('close', () => apiPost(`/jobs/${post.job_id}/post/close`))} className="btn-danger">Close the post</button>
                     </div>
                     {post.dev && (
                       <div className="mt-3 p-3 rounded-lg border border-dashed border-purple-300 bg-purple-50">
@@ -248,12 +248,12 @@ export default function JobPostEditor() {
                         <div className="flex flex-wrap gap-2 items-center">
                           <button onClick={sendDemo} disabled={!!busy}
                             className="px-3 py-1.5 text-sm rounded-lg bg-purple-600 text-white font-medium hover:bg-purple-700 disabled:opacity-50">
-                            {busy === 'demo' ? 'Candidates are applying…' : '🧪 Send 4 demo applications'}
+                            {busy === 'demo' ? 'Candidates are applying…' : 'Send 4 demo applications'}
                           </button>
                           {demoMsg && (
                             <>
                               <span className="text-sm text-purple-900">✓ {demoMsg}</span>
-                              <Link to={`/jobs/${post.job_id}`} className="text-sm font-medium text-blue-700 hover:underline">See the ranking →</Link>
+                              <Link to={`/jobs/${post.job_id}`} className="text-sm font-medium text-brand-700 hover:underline">See the ranking →</Link>
                             </>
                           )}
                         </div>
@@ -262,17 +262,17 @@ export default function JobPostEditor() {
                   </div>
                 ) : (
                   <div className="space-y-2">
-                    <p className="text-sm text-gray-600">Publishing makes the post public and approves the scoring criteria above. Only you can do this.</p>
+                    <p className="text-sm text-slate-600">Publishing makes the post public and approves the scoring criteria above. Only you can do this.</p>
                     {c.fairness.length > 0 && (
                       <input value={note} onChange={(e) => setNote(e.target.value)} className="w-full border rounded px-2 py-1.5 text-sm"
                         placeholder="Publishing with open wording issues? Write why (saved in the audit log)" />
                     )}
-                    <button onClick={publish} disabled={!!busy} className="px-4 py-2 rounded-lg bg-green-600 text-white font-medium hover:bg-green-700 disabled:opacity-50">
+                    <button onClick={publish} disabled={!!busy} className="btn-success">
                       {busy === 'publish' ? 'Publishing…' : 'Publish'}
                     </button>
                   </div>
                 )}
-                {err && <p className="text-sm text-red-700 mt-2">{err}</p>}
+                {err && <p className="text-sm text-rose-700 mt-2">{err}</p>}
               </div>
             </>
           )}

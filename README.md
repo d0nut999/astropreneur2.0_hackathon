@@ -1,11 +1,11 @@
-# 🛡️ HireGuard — Secure AI HR Assistant
+# HR Buddy — Secure AI HR Assistant
 
-**HireGuard reads the HR inbox, sorts and summarizes every email, ranks job applicants with evidence, runs a written interview, and recommends — while every email sent and every decision about a person stays with a human.**
+**HR Buddy helps HR in its two worlds — _Recruitment_ (future employees: job posts, CV ranking with evidence, written interviews, scheduling, follow-ups) and _Employees_ (current staff: presence, leave requests, handbook answers) — while every email sent and every decision about a person stays with a human.**
 
 > **Golden rule:** *the agent executes, the human decides about people.*
 > **Security rule:** *the reader can't act, the actor can't read.* The AI reads untrusted content (emails, CVs, answers) and can only return JSON. Sending, status changes and decisions are done by normal code, behind a logged-in human's click.
 
-Built for the **Secure AI HR System** hackathon (Astropreneur 2.0). All people, companies and documents in this repository are **fictional**.
+Built by team **NGZ 40** for the **Secure AI HR System** hackathon (Astropreneur 2.0). All people, companies and documents in this repository are **fictional**.
 
 ---
 
@@ -27,6 +27,8 @@ Built for the **Secure AI HR System** hackathon (Astropreneur 2.0). All people, 
 
 ## 1. What it does
 
+The interface has **two areas** at the top: **Recruitment** (job posts, candidates, follow-ups) and **Employees** (overview, leave requests, questions & handbook, directory). A shared workspace (Today, Inbox, Calendar, Approvals, and the Audit log for admins) is in the sidebar of both.
+
 | Feature | What HR sees |
 |---|---|
 | **Smart inbox** | Every email gets a category (application, candidate reply, meeting, request, info, phishing), a 1–2 line summary, and an urgency — **urgent / normal / low / suspicious — with the reason** ("Meeting tomorrow 10:00 · sender is the Director"). |
@@ -36,10 +38,10 @@ Built for the **Secure AI HR System** hackathon (Astropreneur 2.0). All people, 
 | **CV screening & ranking** | Applications arriving by email are checked, anonymized and scored per job criterion. Every score shows **a quote from the CV as proof**. Ranked list with **blind mode** (names hidden). |
 | **Bulk shortlist** | HR ticks several candidates in the ranking (or *Select all ≥ 70*), then one click shortlists them and prepares **one personal invitation each** (2 common questions + 1 tailored to that CV). In Approvals, HR reads them, unticks any to keep back, and clicks *Approve & send selected*. Every shortlist and every email is still recorded individually in the audit log. |
 | **Written interview** | For a shortlisted candidate the AI prepares 3 questions (2 identical for everyone + 1 tailored to their weakest skill) and an invitation with a personal, one-time link. |
-| **Evaluation & recommendation** | Answers are scored with evidence; HireGuard recommends **Advance / Hold / Not recommended** with a confidence level. |
+| **Evaluation & recommendation** | Answers are scored with evidence; HR Buddy recommends **Advance / Hold / Not recommended** with a confidence level. |
 | **Human decision** | HR advances or rejects. Every rejection — and advancing someone the AI did not recommend — requires a written reason, saved in the audit log. |
-| **Interview scheduling** | HR sets **interview blocks** (default Tue 14–17, Wed 10–12, Thu 14–17, max 3/day). An advanced candidate gets a link showing the times free **right now** — nothing is reserved in advance, so the calendar never fills with holds. **First come, first served**, with atomic booking: if two candidates pick the same time, only one gets it and the other is offered the closest free times. Candidates can also **reply by email** ("would Tuesday at 14:00 work?"): the email is linked to their interview, HireGuard checks the time and HR clicks *Book it* or *Propose alternatives*. Meetings that clash with an interview are flagged urgent and need "confirm anyway". |
-| **Follow-ups** | HireGuard tracks every candidate we are waiting for (written answers not received, interview time not picked). After **48 h of silence** a reminder is *due*; HR clicks *Prepare reminder* (or *Prepare all due reminders*) and approves it like any email. Each reminder carries a **new personal link** that only starts working once HR sends it (a rejected reminder's link never works). After **2 reminders** HireGuard stops suggesting more — it's HR's call: *Close application* records a human decision and drafts a polite "reply if this was a mistake" email. A dev-only **demo clock** (⏩ +3 days) shows this in a 5-minute demo without changing any data. |
+| **Interview scheduling** | HR sets **interview blocks** (default Tue 14–17, Wed 10–12, Thu 14–17, max 3/day). An advanced candidate gets a link showing the times free **right now** — nothing is reserved in advance, so the calendar never fills with holds. **First come, first served**, with atomic booking: if two candidates pick the same time, only one gets it and the other is offered the closest free times. Candidates can also **reply by email** ("would Tuesday at 14:00 work?"): the email is linked to their interview, HR Buddy checks the time and HR clicks *Book it* or *Propose alternatives*. Meetings that clash with an interview are flagged urgent and need "confirm anyway". |
+| **Follow-ups** | HR Buddy tracks every candidate we are waiting for (written answers not received, interview time not picked). After **48 h of silence** a reminder is *due*; HR clicks *Prepare reminder* (or *Prepare all due reminders*) and approves it like any email. Each reminder carries a **new personal link** that only starts working once HR sends it (a rejected reminder's link never works). After **2 reminders** HR Buddy stops suggesting more — it's HR's call: *Close application* records a human decision and drafts a polite "reply if this was a mistake" email. A dev-only **demo clock** (⏩ +3 days) shows this in a 5-minute demo without changing any data. |
 | **Employees & leave** | Dashboard of the (fictional) company: 40 employees, how many are **working today**, on paid leave or sick, and **presence per team** against a 70% minimum. Leave requests are **read from employees' emails** (sender matched to the staff list in code; the AI only extracts who / when / type). Rules in code give a recommendation with reasons: ✅ within the rules · ⚠️ team would drop below 70% → **closest dates that work** are proposed · ⛔ over the **30 days/year** limit → *decline & offer a meeting* · 🩺 sick leave is **never refused for staffing**; above **60 sick days** HR is told to follow up (support, occupational health) — no diagnosis is ever stored. HR decides; going against the recommendation or rejecting needs a reason; every reply is a draft. Approved leave appears in the Calendar ("🌴 3 away"). |
 | **Employee questions** | Questions emailed by employees ("can I work remotely?", "how many days do I have left?") are answered **only from the company handbook, citing the section** (§4…), and balances come from the database, not the AI. If the handbook doesn't cover it, the reply says it was **forwarded to HR** instead of guessing. HR approves every reply. An *Ask the handbook* box lets HR try it. |
 | **Calendar** | Week view: interviews, meetings found in emails (confirmed / to confirm), deadlines, interview blocks, lunch, free interview spots, clashes, a now-line; click anything for details and actions. List view too. |
@@ -52,7 +54,7 @@ Built for the **Secure AI HR System** hackathon (Astropreneur 2.0). All people, 
 
 **Functional axes covered (all 6):** Resume Screening & Ranking · Email Summary · Automatic Replies · Candidate Follow-ups (invitations, outcomes, **reminders after silence with renewed links, then a human close**) · Interview Scheduling (live times in interview blocks, first come first served, email requests, clash detection) · Employee Questions (handbook answers with citations or forwarded to HR; leave requests checked against balance and team presence).
 
-| Requirement | How HireGuard proves it |
+| Requirement | How HR Buddy proves it |
 |---|---|
 | **Intelligent** | Ranked shortlist with per-criterion justification and CV quotes; urgency with reasons; tailored interview question; recommendation with evidence and confidence. |
 | **Reliable** | Every AI output is validated against a schema (retries + fallback model). If the AI is down, **offline rules** take over so the app never stops. Evidence quotes are checked against the source. Totals and recommendations are computed by code. 84 automated tests. |
@@ -83,7 +85,7 @@ Optional "live" email: run Mailpit (§8) and `python scripts/send_demo_emails.py
 
 ## 4. Architecture
 
-![HireGuard architecture](docs/architecture.png)
+![HR Buddy architecture](docs/architecture.png)
 
 ```
 Mailbox (demo files · Mailpit · IMAP read-only)
@@ -164,7 +166,7 @@ Every prompt treats the content as **untrusted data** inside delimiters, asks th
 - **Blind mode:** names hidden in rankings until HR chooses to reveal them.
 - **Job-related criteria only**, with an HR-approved rubric (weights visible on the job page).
 - **Same core questions for every candidate**; evaluation judges content, never style or language level.
-- **No face, voice or emotion analysis.** Inferring emotions of job applicants is prohibited in the EU AI Act (Art. 5(1)(f)); recruitment AI is high-risk (Annex III) and requires human oversight and logging — which HireGuard provides by design.
+- **No face, voice or emotion analysis.** Inferring emotions of job applicants is prohibited in the EU AI Act (Art. 5(1)(f)); recruitment AI is high-risk (Annex III) and requires human oversight and logging — which HR Buddy provides by design.
 - **Accountability:** every rejection, and every decision that goes against the AI, needs a written reason, stored with the decision and in the audit log.
 
 ---
@@ -276,10 +278,10 @@ Honest limits of this prototype:
 - SQLite and in-memory login throttling suit one server; production would use PostgreSQL and Redis.
 - Mailbox access is read-only IMAP or Mailpit; no Gmail/Outlook OAuth yet.
 - Leave counts working days (Mon–Fri) only; public holidays and part-time contracts are not modelled yet.
-- HR's calendar lives in HireGuard (plus `.ics` export); it is not yet synced two-way with Google/Outlook.
+- HR's calendar lives in HR Buddy (plus `.ics` export); it is not yet synced two-way with Google/Outlook.
 
 Next steps: two-way Google/Outlook calendar sync, audio answers evaluated on **content only** (transcript, never voice/face), bias monitoring dashboard across hires, data-retention automation, multi-company accounts, HTTPS deployment with `COOKIE_SECURE=true`.
 
 ---
 
-*Team project for the Secure AI HR System hackathon. Fictional data only — no real personal data is used anywhere in this repository.*
+*Developed by **NGZ 40** for the Secure AI HR System hackathon. Fictional data only — no real personal data is used anywhere in this repository.*

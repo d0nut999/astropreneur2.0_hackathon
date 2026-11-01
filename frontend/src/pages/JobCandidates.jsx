@@ -64,7 +64,7 @@ export default function JobCandidates() {
     }
   }
 
-  if (loading) return <div className="text-center text-gray-500">Loading...</div>
+  if (loading) return <div className="text-center text-slate-500">Loading...</div>
 
   const ranked = rows.filter((r) => r.status !== 'QUARANTINED')
   const blocked = rows.filter((r) => r.status === 'QUARANTINED')
@@ -72,11 +72,11 @@ export default function JobCandidates() {
 
   return (
     <div>
-      <Link to="/jobs" className="text-sm text-blue-600 hover:underline">← All jobs</Link>
+      <Link to="/jobs" className="text-sm text-brand-600 hover:underline">← All jobs</Link>
       <div className="flex flex-wrap items-start justify-between gap-4 mt-2 mb-6">
         <div>
-          <h1 className="text-3xl font-bold">{job?.title}</h1>
-          <p className="text-gray-500 text-sm">Ranked by evidence from each CV. The AI suggests, you shortlist.</p>
+          <h1 className="page-title">{job?.title}</h1>
+          <p className="text-slate-500 text-sm">Ranked by evidence from each CV. The AI suggests, you shortlist.</p>
         </div>
         <div className="flex items-center gap-3">
           <label className="flex items-center gap-2 text-sm bg-white border rounded-lg px-3 py-2 cursor-pointer">
@@ -85,7 +85,7 @@ export default function JobCandidates() {
           </label>
           {unscored > 0 && (
             <button onClick={scoreAll} disabled={busy}
-              className="px-4 py-2 rounded-lg bg-blue-600 text-white text-sm font-medium hover:bg-blue-700 disabled:opacity-50">
+              className="btn-primary">
               {busy ? 'Scoring…' : `Score ${unscored} new`}
             </button>
           )}
@@ -93,30 +93,30 @@ export default function JobCandidates() {
       </div>
 
       {notice && (
-        <div className="mb-4 rounded-lg bg-blue-50 border border-blue-200 px-4 py-2 text-sm text-blue-900">
+        <div className="mb-4 rounded-lg bg-brand-50 border border-brand-200 px-4 py-2 text-sm text-brand-900">
           {notice} {notice.includes('Approvals') && <Link to="/approvals" className="underline font-medium">Review them →</Link>}
         </div>
       )}
 
       {ranked.some(eligible) && (
-        <div className="sticky top-0 z-10 mb-3 bg-white rounded-lg shadow px-4 py-3 flex flex-wrap items-center gap-3 text-sm">
+        <div className="card sticky top-0 z-10 mb-3 px-4 py-3 flex flex-wrap items-center gap-3 text-sm">
           <span className="font-medium">{selected.length} selected</span>
           <button onClick={() => setSelected(ranked.filter((r) => eligible(r) && (r.total ?? 0) >= 70).map((r) => r.id))}
-            className="px-3 py-1.5 rounded border hover:bg-gray-50">Select all ≥ 70</button>
-          <button onClick={() => setSelected([])} className="px-3 py-1.5 rounded border hover:bg-gray-50">Clear</button>
+            className="btn-secondary">Select all ≥ 70</button>
+          <button onClick={() => setSelected([])} className="btn-secondary">Clear</button>
           <button onClick={bulkInvite} disabled={!selected.length || busy}
-            className="ml-auto px-4 py-2 rounded-lg bg-green-600 text-white font-medium hover:bg-green-700 disabled:opacity-40">
+            className="btn-success ml-auto disabled:opacity-40">
             {busy ? 'Preparing personal invitations…' : `✓ Shortlist & prepare invitations (${selected.length})`}
           </button>
-          <span className="w-full text-xs text-gray-500">
+          <span className="w-full text-xs text-slate-500">
             Each candidate gets their own email: 2 common questions + 1 tailored to their CV. Nothing is sent until you approve in Approvals.
           </span>
         </div>
       )}
 
-      <div className="bg-white rounded-lg shadow overflow-hidden mb-8">
+      <div className="card overflow-hidden mb-8">
         <table className="w-full text-sm">
-          <thead className="bg-gray-50 text-gray-500 text-xs uppercase">
+          <thead className="bg-slate-50 text-slate-500 text-xs uppercase">
             <tr>
               <th className="px-3 py-3 w-8"></th>
               <th className="px-4 py-3 text-left w-12">#</th>
@@ -128,29 +128,29 @@ export default function JobCandidates() {
           </thead>
           <tbody className="divide-y">
             {ranked.map((r) => (
-              <tr key={r.id} className={`hover:bg-gray-50 ${selected.includes(r.id) ? 'bg-green-50' : ''}`}>
+              <tr key={r.id} className={`hover:bg-slate-50 ${selected.includes(r.id) ? 'bg-emerald-50' : ''}`}>
                 <td className="px-3 py-4">
                   {eligible(r) && <input type="checkbox" checked={selected.includes(r.id)} onChange={() => toggle(r.id)} className="h-4 w-4" />}
                 </td>
-                <td className="px-4 py-4 font-bold text-lg text-gray-400">{r.rank ?? '–'}</td>
+                <td className="px-4 py-4 font-bold text-lg text-slate-400">{r.rank ?? '–'}</td>
                 <td className="px-4 py-4">
-                  <Link to={`/candidates/${r.id}`} className="font-semibold text-blue-700 hover:underline">
+                  <Link to={`/candidates/${r.id}`} className="font-semibold text-brand-700 hover:underline">
                     {blind ? r.alias : r.name}
                   </Link>
-                  <p className="text-xs text-gray-500 line-clamp-2 max-w-md">{r.summary}</p>
+                  <p className="text-xs text-slate-500 line-clamp-2 max-w-md">{r.summary}</p>
                   {r.flags.map((f, i) => (
-                    <p key={i} className="text-xs text-amber-700 mt-1">⚠ {f}</p>
+                    <p key={i} className="text-xs text-amber-700 mt-1">{f}</p>
                   ))}
                 </td>
                 <td className="px-4 py-4">
                   <ScoreBar value={r.total} />
-                  {r.scored_by === 'offline' && <p className="text-[11px] text-gray-400 mt-1">offline scoring</p>}
+                  {r.scored_by === 'offline' && <p className="text-[11px] text-slate-400 mt-1">offline scoring</p>}
                 </td>
                 <td className="px-4 py-4">
                   <div className="space-y-1 min-w-[180px]">
                     {r.criteria.map((c) => (
                       <div key={c.label} className="flex items-center gap-2" title={`${c.label}: ${c.score}/5`}>
-                        <span className="text-[11px] text-gray-500 w-24 truncate">{c.label}</span>
+                        <span className="text-[11px] text-slate-500 w-24 truncate">{c.label}</span>
                         <div className="flex-1"><ScoreBar value={c.score} max={5} small /></div>
                       </div>
                     ))}
@@ -158,7 +158,7 @@ export default function JobCandidates() {
                 </td>
                 <td className="px-4 py-4 space-y-1">
                   <StatusBadge status={r.status} />
-                  {r.recommendation && !r.decision && <div className="text-xs text-gray-500">AI: <RecommendationBadge value={r.recommendation} /></div>}
+                  {r.recommendation && !r.decision && <div className="text-xs text-slate-500">AI: <RecommendationBadge value={r.recommendation} /></div>}
                   {r.decision && <div><RecommendationBadge value={r.decision} /></div>}
                 </td>
               </tr>
@@ -166,8 +166,8 @@ export default function JobCandidates() {
           </tbody>
         </table>
         {ranked.length === 0 && (
-          <p className="p-6 text-gray-500 text-sm">
-            No candidates yet. Go to the <Link to="/inbox" className="text-blue-600 hover:underline">Inbox</Link> and load emails —
+          <p className="p-6 text-slate-500 text-sm">
+            No candidates yet. Go to the <Link to="/inbox" className="text-brand-600 hover:underline">Inbox</Link> and load emails —
             applications with a CV land here automatically.
           </p>
         )}
@@ -175,8 +175,8 @@ export default function JobCandidates() {
 
       {blocked.length > 0 && (
         <div>
-          <h2 className="text-lg font-semibold mb-2">🛡️ Blocked by the security gate ({blocked.length})</h2>
-          <p className="text-sm text-gray-500 mb-3">These CVs were never shown to the AI. A human can review them.</p>
+          <h2 className="text-lg font-semibold mb-2">Blocked by the security gate ({blocked.length})</h2>
+          <p className="text-sm text-slate-500 mb-3">These CVs were never shown to the AI. A human can review them.</p>
           <div className="space-y-2">
             {blocked.map((r) => (
               <Link key={r.id} to={`/candidates/${r.id}`}
