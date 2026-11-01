@@ -1,0 +1,7 @@
+{
+  "from_name": "Amira Sassi",
+  "from_addr": "amira.sassi@fictional-company.test",
+  "received_offset_minutes": -140,
+  "subject": "Leave request",
+  "body": "Dear HR,\n\nI would like to take two days of leave, {wed3} and {thu3}, for a personal appointment.\n\nKind regards,\nAmira Sassi\nFinance"
+}

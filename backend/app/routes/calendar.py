@@ -26,6 +26,8 @@ def week(day: Optional[str] = None, db: Session = Depends(get_session)):
     blocks = scheduler.blocks()
 
     items, all_day = [], []
+    from ..services.leave import leave_on_day_for_calendar
+    away = leave_on_day_for_calendar(db, days[0], days[-1])
     for slot in db.exec(select(InterviewSlot).where(InterviewSlot.status == SlotStatus.BOOKED)).all():
         if slot.start.date().isoformat() not in in_week:
             continue
@@ -69,6 +71,7 @@ def week(day: Optional[str] = None, db: Session = Depends(get_session)):
             "date": d.isoformat(), "weekday": d.strftime("%A"), "is_today": d == date.today(),
             "is_work_day": str(d.weekday()) in settings.work_days.split(","),
             "blocks": [{"start": f"{a:02d}:00", "end": f"{b:02d}:00"} for a, b in blocks.get(d.weekday(), [])],
+            "away": [a for a in away if a["date"] == d.isoformat()],
         } for d in days],
         "items": sorted(items, key=lambda i: i["start"]),
         "all_day": all_day,

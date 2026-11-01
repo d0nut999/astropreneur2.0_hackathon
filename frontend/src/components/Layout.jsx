@@ -9,9 +9,10 @@ const LINKS = [
   { to: '/inbox', label: 'Inbox' },
   { to: '/agenda', label: 'Calendar' },
   { to: '/jobs', label: 'Jobs' },
+  { to: '/employees', label: 'Employees' },
   { to: '/followups', label: 'Follow-ups' },
   { to: '/approvals', label: 'Approvals' },
-  { to: '/audit', label: 'Audit' },
+  { to: '/audit', label: 'Audit', adminOnly: true },
 ]
 
 export default function Layout() {
@@ -29,7 +30,7 @@ export default function Layout() {
             🛡️ HireGuard
           </Link>
           <ul className="flex gap-1 items-center">
-            {LINKS.map((l) => (
+            {LINKS.filter((l) => !l.adminOnly || user?.role === 'admin').map((l) => (
               <li key={l.to}>
                 <NavLink
                   to={l.to}

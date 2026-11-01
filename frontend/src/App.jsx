@@ -12,6 +12,9 @@ import Jobs from './pages/Jobs'
 import JobCandidates from './pages/JobCandidates'
 import Candidate from './pages/Candidate'
 import FollowUps from './pages/FollowUps'
+import Employees from './pages/Employees'
+import JobPostEditor from './pages/JobPostEditor'
+import Careers from './pages/Careers'
 import Approvals from './pages/Approvals'
 import Audit from './pages/Audit'
 import Portal from './pages/Portal'
@@ -26,6 +29,7 @@ export default function App() {
         <Route path="/login" element={<Login />} />
         <Route path="/portal/:token" element={<Portal />} />
         <Route path="/schedule/:token" element={<Schedule />} />
+        <Route path="/careers/:slug" element={<Careers />} />
 
         {/* Protected routes with layout */}
         <Route element={<RequireAuth><Layout /></RequireAuth>}>
@@ -35,8 +39,11 @@ export default function App() {
           <Route path="/agenda" element={<Calendar />} />
           <Route path="/calendar" element={<Calendar />} />
           <Route path="/jobs" element={<Jobs />} />
+          <Route path="/jobs/new" element={<JobPostEditor />} />
+          <Route path="/jobs/:id/post" element={<JobPostEditor />} />
           <Route path="/jobs/:id" element={<JobCandidates />} />
           <Route path="/candidates/:id" element={<Candidate />} />
+          <Route path="/employees" element={<Employees />} />
           <Route path="/followups" element={<FollowUps />} />
           <Route path="/approvals" element={<Approvals />} />
           <Route path="/audit" element={<Audit />} />

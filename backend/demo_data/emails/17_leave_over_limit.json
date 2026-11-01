@@ -1,0 +1,7 @@
+{
+  "from_name": "Mehdi Saidi",
+  "from_addr": "mehdi.saidi@fictional-company.test",
+  "received_offset_minutes": -80,
+  "subject": "Days off request",
+  "body": "Hi,\n\nCould I take 4 days off from {mon2} to {thu2}? I would like to travel to see my family.\n\nBest,\nMehdi"
+}

@@ -1,0 +1,7 @@
+{
+  "from_name": "Hatem Riahi",
+  "from_addr": "hatem.riahi@fictional-company.test",
+  "received_offset_minutes": -50,
+  "subject": "Leave request next week",
+  "body": "Hello HR,\n\nI would like to request leave from {mon1} to {fri1} for a family wedding.\n\nThank you,\nHatem\nCustomer Support"
+}

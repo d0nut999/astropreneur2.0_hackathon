@@ -15,6 +15,7 @@ const FILTERS = [
   { key: 'urgent', label: 'Urgent', params: '?urgency=urgent' },
   { key: 'candidates', label: 'Candidates', match: (e) => e.category.startsWith('candidate') },
   { key: 'work', label: 'Work', match: (e) => e.category.startsWith('work') },
+  { key: 'employees', label: 'Employees', match: (e) => ['leave_request', 'employee_question'].includes(e.category) },
   { key: 'flagged', label: 'Suspicious', params: '?urgency=flagged' },
 ]
 
@@ -282,6 +283,11 @@ export default function Inbox() {
               {detail.application_id && (
                 <Link to={`/candidates/${detail.application_id}`} className="inline-block mb-3 text-sm text-blue-600 hover:underline">
                   → Open this candidate
+                </Link>
+              )}
+              {detail.category === 'leave_request' && (
+                <Link to="/employees#requests" className="inline-block mb-3 text-sm text-teal-700 hover:underline">
+                  → Decide this leave request in Employees (balance, team presence, recommendation)
                 </Link>
               )}
 

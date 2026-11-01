@@ -84,15 +84,19 @@ def process_incoming(db: Session, raw: dict, now: datetime | None = None) -> Ema
     db.commit()
     db.refresh(email_row)
 
+    # 3b. Emails from our own employees: leave requests and questions (sender matched in code)
+    from .employees import handle_employee_email
+    employee_category = handle_employee_email(db, email_row, raw, now)
+
     # 4. Meetings & deadlines -> suggested events (HR confirms or dismisses)
     #    (not for a candidate proposing their interview time: that is handled in 4b)
     from .scheduler import scheduling_application
     sched_app = scheduling_application(db, raw["from_addr"])
-    if analysis.meeting and analysis.meeting.date and urgency != "flagged" and not sched_app:
+    if analysis.meeting and analysis.meeting.date and urgency != "flagged" and not sched_app and not employee_category:
         m = analysis.meeting
         db.add(Event(email_id=email_row.id, type=EventType.MEETING, title=m.title or raw["subject"],
                      date=m.date, time=m.time, location=m.location, attendees_json=m.with_people))
-    if analysis.deadline and urgency != "flagged":
+    if analysis.deadline and urgency != "flagged" and not employee_category:
         db.add(Event(email_id=email_row.id, type=EventType.DEADLINE,
                      title=analysis.deadline_what or raw["subject"], date=analysis.deadline))
     db.commit()
@@ -133,7 +137,8 @@ def _save_and_check_attachments(attachments: list[dict]) -> tuple[list[dict], li
 
 
 def _create_application(db: Session, raw: dict, cv: dict) -> Application:
-    job = db.exec(select(Job)).first()
+    from .job_posts import job_for_application
+    job = job_for_application(db, raw.get("subject", ""), raw.get("body", "")) or db.exec(select(Job).order_by(Job.id)).first()
     if not job:
         job = Job(title="General application", description="Applications received by email")
         db.add(job)

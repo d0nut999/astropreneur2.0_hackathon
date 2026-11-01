@@ -1,5 +1,5 @@
 """SQLModel table definitions."""
-from datetime import datetime
+from datetime import date, datetime
 from pydantic import NaiveDatetime  # local time, no timezone (works with all SQLModel versions)
 from enum import Enum
 from typing import Optional
@@ -339,3 +339,62 @@ class SentEmail(SQLModel, table=True):
     application_id: Optional[int] = Field(default=None, foreign_key="applications.id", index=True)
     kind: str = "other"   # invite | answers_reminder | schedule | schedule_reminder | closing | other
     sent_at: NaiveDatetime = Field(default_factory=datetime.now)
+
+
+class Employee(SQLModel, table=True):
+    """A (fictional) employee of the company. Only what HR needs for leave: no health data."""
+    __tablename__ = "employees"
+
+    id: Optional[int] = Field(default=None, primary_key=True)
+    name: str
+    email: str = Field(index=True, unique=True)
+    team: str = Field(index=True)
+    title: str = ""
+
+
+class LeaveType(str, Enum):
+    ANNUAL = "annual"   # paid leave, counted against the yearly allowance
+    SICK = "sick"       # only the word "sick" is stored, never an illness
+
+
+class LeaveStatus(str, Enum):
+    PENDING = "pending"
+    APPROVED = "approved"
+    REJECTED = "rejected"
+    PROPOSED = "proposed"   # HR proposed other dates
+
+
+class LeaveRequest(SQLModel, table=True):
+    """A leave request (from an email or entered by HR). Only a human approves or rejects it."""
+    __tablename__ = "leave_requests"
+
+    id: Optional[int] = Field(default=None, primary_key=True)
+    employee_id: int = Field(foreign_key="employees.id", index=True)
+    type: LeaveType = LeaveType.ANNUAL
+    start: date
+    end: date
+    status: LeaveStatus = LeaveStatus.PENDING
+    email_id: Optional[int] = Field(default=None, foreign_key="emails.id")
+    reason_from_employee: str = ""   # short, what they wrote (no medical details are asked)
+    hr_note: str = ""
+    extracted_by: str = "rules"      # "ai" or "rules"
+    decided_by: str = ""
+    created_at: NaiveDatetime = Field(default_factory=datetime.now)
+
+
+class JobPost(SQLModel, table=True):
+    """The public job post of a Job: HR's key facts, the AI draft, checks, and publication (human only)."""
+    __tablename__ = "job_posts"
+
+    id: Optional[int] = Field(default=None, primary_key=True)
+    job_id: int = Field(foreign_key="jobs.id", index=True, unique=True)
+    code: str = Field(index=True)                 # e.g. JOB-002, used in the application email subject
+    details_json: dict = Field(default_factory=dict, sa_column=Column(JSON))   # what HR entered
+    text: str = ""                                # the post (AI draft, then edited by HR)
+    generated_by: str = "template"                # "ai" | "template"
+    checks_json: dict = Field(default_factory=dict, sa_column=Column(JSON))    # fairness + fact checks
+    status: str = "draft"                         # draft | published | closed
+    public_slug: str = Field(default="", index=True)
+    published_by: Optional[int] = None
+    published_at: Optional[NaiveDatetime] = None
+    created_at: NaiveDatetime = Field(default_factory=datetime.now)

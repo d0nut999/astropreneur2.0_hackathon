@@ -7,6 +7,7 @@ import { apiGet } from '../api'
 export default function Audit() {
   const [logs, setLogs] = useState([])
   const [loading, setLoading] = useState(true)
+  const [forbidden, setForbidden] = useState(false)
 
   useEffect(() => {
     const load = async () => {
@@ -14,7 +15,8 @@ export default function Audit() {
         const res = await apiGet('/audit')
         setLogs(res.data)
       } catch (err) {
-        console.error('Failed to load audit logs:', err)
+        if (err.response?.status === 403) setForbidden(true)
+        else console.error('Failed to load audit logs:', err)
       } finally {
         setLoading(false)
       }
@@ -24,6 +26,18 @@ export default function Audit() {
   }, [])
 
   if (loading) return <div className="text-center text-gray-500">Loading...</div>
+  if (forbidden) {
+    return (
+      <div className="max-w-xl mx-auto bg-white rounded-lg shadow p-8 text-center">
+        <p className="text-4xl mb-2">🔒</p>
+        <h1 className="text-xl font-semibold text-gray-900 mb-2">Admins only</h1>
+        <p className="text-gray-600">
+          The audit log records every action, including yours. To keep it independent, only an administrator can read it.
+          Your actions are still recorded.
+        </p>
+      </div>
+    )
+  }
 
   return (
     <div>

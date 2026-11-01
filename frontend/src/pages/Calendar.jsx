@@ -126,6 +126,12 @@ export default function Calendar() {
           <div className="text-[10px] text-gray-400 px-1 py-1">all day</div>
           {visibleDays.map((d) => (
             <div key={d.date} className="border-l p-1 min-h-[30px] space-y-1">
+              {d.away?.length > 0 && (
+                <Link to="/employees" title={d.away.map((a) => a.title).join('\n')}
+                  className="block w-full text-left text-xs rounded px-1.5 py-0.5 truncate bg-teal-50 text-teal-800 border border-teal-200 hover:bg-teal-100">
+                  🌴 {d.away.length} away
+                </Link>
+              )}
               {data.all_day.filter((a) => a.date === d.date).map((a) => (
                 <button key={a.id} onClick={() => setSelected({ ...a })}
                   className={`block w-full text-left text-xs rounded px-1.5 py-0.5 truncate border ${a.status === 'confirmed' ? 'bg-orange-500 text-white border-orange-600' : 'bg-white text-orange-800 border-orange-400 border-dashed'}`}>

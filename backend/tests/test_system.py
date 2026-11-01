@@ -19,8 +19,8 @@ def test_reset_restores_demo_and_keeps_audit_log():
         oldest = db.exec(select(AuditLog).order_by(AuditLog.id)).first().id
         count_before = len(db.exec(select(AuditLog)).all())
     r = c.post("/system/reset_demo").json()
-    assert r["ok"] and r["imported"] == 15
-    assert c.get("/system/status").json()["counts"]["emails"] == 15
+    assert r["ok"] and r["imported"] == 21
+    assert c.get("/system/status").json()["counts"]["emails"] == 21
     with Session(engine) as db:  # append-only: nothing deleted, new entries added
         assert db.exec(select(AuditLog).order_by(AuditLog.id)).first().id == oldest
         assert len(db.exec(select(AuditLog)).all()) > count_before

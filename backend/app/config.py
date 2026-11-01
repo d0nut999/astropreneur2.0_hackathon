@@ -50,6 +50,13 @@ class Settings(BaseSettings):
     # Follow-ups: remind candidates who did not answer (HR approves every reminder)
     followup_after_hours: int = 48      # a reminder becomes "due" after this much silence
     followup_max_reminders: int = 2     # after that, HR decides (e.g. close the application)
+    # Job posts: where candidates apply (the inbox HireGuard reads)
+    hr_contact_email: str = "hr@fictional-company.test"
+    company_name: str = "Fictional Company"
+    # Employees & leave (fictional company policy, see demo_data/handbook.md)
+    annual_leave_days: int = 30         # paid leave days per calendar year
+    sick_alert_days: int = 60           # above this, HR is alerted (sick leave is never refused for staffing)
+    team_min_presence: float = 0.70     # a team should keep at least 70% of its people at work
 
     # Login sessions
     session_hours: int = 8

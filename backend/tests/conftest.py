@@ -27,3 +27,20 @@ def logged_in_client() -> TestClient:
     assert r.status_code == 200, r.text
     c.headers["X-CSRF-Token"] = r.json()["csrf_token"]
     return c
+
+
+ADMIN_TEST_EMAIL = "test-admin@fictional-company.test"
+
+
+def admin_client() -> TestClient:
+    """Logged in as an ADMIN (only admins can read the audit log)."""
+    init_db()
+    with Session(engine) as db:
+        if not db.exec(select(User).where(User.email == ADMIN_TEST_EMAIL)).first():
+            db.add(User(email=ADMIN_TEST_EMAIL, password_hash=hash_password(TEST_PASSWORD), role=UserRole.ADMIN))
+            db.commit()
+    c = TestClient(app)
+    r = c.post("/auth/login", json={"email": ADMIN_TEST_EMAIL, "password": TEST_PASSWORD})
+    assert r.status_code == 200, r.text
+    c.headers["X-CSRF-Token"] = r.json()["csrf_token"]
+    return c

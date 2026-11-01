@@ -76,6 +76,10 @@ def generate_digest(db: Session, now: datetime | None = None) -> dict:
         parts.append(f"{len(due)} candidate(s) have not replied: a reminder is due")
     if your_call:
         parts.append(f"{len(your_call)} candidate(s) still silent after reminders (your call)")
+    from ..models import LeaveRequest, LeaveStatus
+    leave_pending = db.exec(select(LeaveRequest).where(LeaveRequest.status == LeaveStatus.PENDING)).all()
+    if leave_pending:
+        parts.append(f"{len(leave_pending)} leave request(s) to decide")
     if pending_drafts:
         parts.append(f"{len(pending_drafts)} reply draft(s) waiting for your approval")
     summary = ("Today: " + ", ".join(parts) + ".") if parts else "Inbox is clear. Nothing needs your attention."
@@ -100,6 +104,7 @@ def generate_digest(db: Session, now: datetime | None = None) -> dict:
         ],
         "need_new_slots_count": len(need_new_slots),
         "followups_due_count": len(due),
+        "leave_pending_count": len(leave_pending),
         "followups_your_call_count": len(your_call),
         "interview_spots_7_days": spots,
         "upcoming_events": [

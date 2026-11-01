@@ -13,7 +13,7 @@ export function AuthProvider({ children }) {
   const [checking, setChecking] = useState(true)
 
   useEffect(() => {
-    if (window.location.pathname.startsWith('/portal') || window.location.pathname.startsWith('/schedule')) {
+    if (window.location.pathname.startsWith('/portal') || window.location.pathname.startsWith('/schedule') || window.location.pathname.startsWith('/careers')) {
       setChecking(false) // candidates never need an HR session
       return
     }

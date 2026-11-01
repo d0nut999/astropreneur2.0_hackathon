@@ -55,9 +55,16 @@ def load_demo_emails(now: datetime | None = None) -> list[dict]:
 
 def _fill(text: str, now: datetime) -> str:
     """Replace demo placeholders: {in_2h} -> "20:00", {day_in_4} -> "Wednesday"."""
+    import re
+    from .leave import add_workdays, week_day
     in_2h = (now + timedelta(hours=2)).replace(minute=0)
-    return (text.replace("{in_2h}", in_2h.strftime("%H:%M"))
+    text = (text.replace("{in_2h}", in_2h.strftime("%H:%M"))
                 .replace("{day_in_4}", (now + timedelta(days=4)).strftime("%A")))
+    days = ["mon", "tue", "wed", "thu", "fri"]
+    # {mon1} = Monday of next week, {fri2} = Friday in two weeks, {wd1} = next working day
+    text = re.sub(r"\{(mon|tue|wed|thu|fri)(\d)\}",
+                  lambda m: week_day(now.date(), int(m.group(2)), days.index(m.group(1))).strftime("%A %d %B"), text)
+    return re.sub(r"\{wd(\d)\}", lambda m: add_workdays(now.date(), int(m.group(1))).strftime("%A %d %B"), text)
 
 
 def fetch_from_mailpit(limit: int = 50) -> list[dict]:

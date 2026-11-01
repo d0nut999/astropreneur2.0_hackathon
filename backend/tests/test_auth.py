@@ -64,3 +64,10 @@ def test_brute_force_lockout():
         c.post("/auth/login", json={"email": "victim@fictional-company.test", "password": "guess"})
     r = c.post("/auth/login", json={"email": "victim@fictional-company.test", "password": "guess"})
     assert r.status_code == 429
+
+
+def test_audit_log_is_admin_only():
+    from tests.conftest import admin_client, logged_in_client
+    assert logged_in_client().get("/audit").status_code == 403   # recruiter: no access to the trail of their own actions
+    r = admin_client().get("/audit")
+    assert r.status_code == 200 and isinstance(r.json(), list)

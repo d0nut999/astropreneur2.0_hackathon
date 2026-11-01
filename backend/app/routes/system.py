@@ -69,7 +69,9 @@ def reset_demo(reload: bool = True, db: Session = Depends(get_session), user: Us
     if settings.app_env != "dev":
         raise HTTPException(403, "Demo reset is only available in dev mode.")
     from ..services.followups import set_demo_shift
+    from ..services.employees import seed_employees
     set_demo_shift(0)
+    seed_employees(db)  # fictional staff + leave history (also removes leave requests linked to emails)
     for model in (SentEmail, TimeRequest, InterviewSlot, ScheduleOffer, Decision, Evaluation, VideoSubmission, Draft, Event, Score, Email):
         for row in db.exec(select(model)).all():
             db.delete(row)
@@ -80,6 +82,17 @@ def reset_demo(reload: bool = True, db: Session = Depends(get_session), user: Us
     for model in (Application, Candidate):
         for row in db.exec(select(model)).all():
             db.delete(row)
+    db.commit()
+    # job posts created during the demo are removed (the seeded job stays)
+    from ..models import Job, JobPost
+    for post in db.exec(select(JobPost)).all():
+        job = db.get(Job, post.job_id)
+        for q in db.exec(select(InterviewQuestion).where(InterviewQuestion.job_id == post.job_id)).all():
+            db.delete(q)
+        db.delete(post)
+        db.commit()
+        if job:
+            db.delete(job)
     db.commit()
     for folder in ("uploads", "outbox"):
         shutil.rmtree(DATA_DIR / folder, ignore_errors=True)

@@ -237,3 +237,28 @@ class AnswerEvaluation(BaseModel):
     summary: str = ""
     injection_suspected: bool = False
     injection_text: str = ""
+
+
+class LeaveExtraction(BaseModel):
+    """What the AI reads from an employee email (rules check everything afterwards)."""
+    is_leave_request: bool = False
+    leave_type: str = "annual"          # "annual" | "sick"
+    start: Optional[str] = None         # YYYY-MM-DD
+    end: Optional[str] = None           # YYYY-MM-DD
+    short_reason: str = ""              # max a few words, never medical details
+
+
+class HandbookAnswer(BaseModel):
+    """Answer to an employee question, only from the handbook sections given."""
+    found: bool = False
+    answer: str = ""
+    cited_sections: list[int] = []
+
+
+class JobPostDraft(BaseModel):
+    """The AI's prose for a job post (code adds contract facts, salary and how to apply)."""
+    intro: str = ""
+    responsibilities: list[str] = []
+    requirements: list[str] = []
+    nice_to_have: list[str] = []
+    offer: list[str] = []

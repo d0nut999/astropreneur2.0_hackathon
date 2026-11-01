@@ -1,0 +1,7 @@
+{
+  "from_name": "Walid Gharbi",
+  "from_addr": "walid.gharbi@fictional-company.test",
+  "received_offset_minutes": -20,
+  "subject": "Sick - not coming in",
+  "body": "Hello,\n\nI am sick again and the doctor gave me 3 days off, from {wd1} to {wd3}. I will send the medical certificate tomorrow.\n\nSorry,\nWalid"
+}
